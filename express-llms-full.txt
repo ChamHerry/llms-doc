@@ -1,0 +1,2044 @@
+---
+url: https://expressjs.com
+description: Express.js 是一个快速、开放、极简的 Node.js Web 应用框架。它提供了强大的路由系统、中间件支持、模板引擎集成等功能，是构建 Web 应用和 API 的首选框架。
+---
+
+# Express.js 完整文档
+
+## 简介
+
+Express.js 是一个基于 Node.js 的轻量级 Web 应用框架，提供了一系列强大的特性：
+
+- **路由系统**: 灵活的路由定义和参数处理
+- **中间件**: 可组合的请求处理管道
+- **模板引擎**: 支持多种视图引擎
+- **静态文件服务**: 内置静态文件托管
+- **错误处理**: 统一的错误处理机制
+- **扩展性**: 丰富的中间件生态系统
+
+## 快速开始
+
+### 安装
+
+```bash
+# 创建项目目录
+mkdir myapp
+cd myapp
+
+# 初始化 package.json
+npm init -y
+
+# 安装 Express
+npm install express
+```
+
+### 基本应用
+
+```javascript
+const express = require('express')
+const app = express()
+const port = 3000
+
+app.get('/', (req, res) => {
+  res.send('Hello World!')
+})
+
+app.listen(port, () => {
+  console.log(`Server listening on port ${port}`)
+})
+```
+
+### 使用 Express Generator
+
+```bash
+# 安装生成器
+npm install -g express-generator
+
+# 创建应用
+express --view=pug myapp
+
+# 安装依赖并启动
+cd myapp
+npm install
+npm start
+```
+
+### 项目结构
+
+```
+myapp/
+├── bin/
+│   └── www              # 启动脚本
+├── public/              # 静态资源
+│   ├── images/
+│   ├── javascripts/
+│   └── stylesheets/
+├── routes/              # 路由文件
+│   ├── index.js
+│   └── users.js
+├── views/               # 模板文件
+│   ├── error.pug
+│   ├── index.pug
+│   └── layout.pug
+├── app.js               # 应用入口
+└── package.json
+```
+
+## 路由
+
+### 基本路由
+
+```javascript
+const express = require('express')
+const app = express()
+
+// GET 请求
+app.get('/', (req, res) => {
+  res.send('GET request to homepage')
+})
+
+// POST 请求
+app.post('/', (req, res) => {
+  res.send('POST request to homepage')
+})
+
+// PUT 请求
+app.put('/user', (req, res) => {
+  res.send('PUT request to /user')
+})
+
+// DELETE 请求
+app.delete('/user', (req, res) => {
+  res.send('DELETE request to /user')
+})
+
+// PATCH 请求
+app.patch('/user', (req, res) => {
+  res.send('PATCH request to /user')
+})
+
+// 所有 HTTP 方法
+app.all('/secret', (req, res, next) => {
+  console.log('Accessing the secret section...')
+  next()
+})
+```
+
+### 路由路径
+
+```javascript
+// 字符串路径
+app.get('/about', (req, res) => {
+  res.send('About page')
+})
+
+// 字符串模式
+app.get('/ab?cd', (req, res) => {
+  // 匹配 /acd 和 /abcd
+  res.send('ab?cd')
+})
+
+app.get('/ab+cd', (req, res) => {
+  // 匹配 /abcd, /abbcd, /abbbcd 等
+  res.send('ab+cd')
+})
+
+app.get('/ab*cd', (req, res) => {
+  // 匹配 /abcd, /abxcd, /abRANDOMcd 等
+  res.send('ab*cd')
+})
+
+app.get('/ab(cd)?e', (req, res) => {
+  // 匹配 /abe 和 /abcde
+  res.send('ab(cd)?e')
+})
+
+// 正则表达式
+app.get(/a/, (req, res) => {
+  // 匹配包含 'a' 的路径
+  res.send('/a/')
+})
+
+app.get(/.*fly$/, (req, res) => {
+  // 匹配以 'fly' 结尾的路径
+  res.send('/.*fly$/')
+})
+```
+
+### 路由参数
+
+```javascript
+// 基本参数
+app.get('/users/:userId', (req, res) => {
+  res.send(`User ID: ${req.params.userId}`)
+})
+
+// 多个参数
+app.get('/users/:userId/books/:bookId', (req, res) => {
+  res.send(`User: ${req.params.userId}, Book: ${req.params.bookId}`)
+})
+
+// 带约束的参数
+app.get('/users/:userId(\\d+)', (req, res) => {
+  // 只匹配数字
+  res.send(`User ID: ${req.params.userId}`)
+})
+
+// 可选参数
+app.get('/users/:userId?', (req, res) => {
+  if (req.params.userId) {
+    res.send(`User ID: ${req.params.userId}`)
+  } else {
+    res.send('All users')
+  }
+})
+```
+
+### 路由处理器
+
+```javascript
+// 单个回调函数
+app.get('/example/a', (req, res) => {
+  res.send('Hello from A!')
+})
+
+// 多个回调函数
+app.get('/example/b', (req, res, next) => {
+  console.log('First callback')
+  next()
+}, (req, res) => {
+  res.send('Hello from B!')
+})
+
+// 回调函数数组
+const cb0 = (req, res, next) => {
+  console.log('CB0')
+  next()
+}
+
+const cb1 = (req, res, next) => {
+  console.log('CB1')
+  next()
+}
+
+const cb2 = (req, res) => {
+  res.send('Hello from C!')
+}
+
+app.get('/example/c', [cb0, cb1, cb2])
+
+// 混合使用
+app.get('/example/d', [cb0, cb1], (req, res, next) => {
+  console.log('Response will be sent by the next function')
+  next()
+}, (req, res) => {
+  res.send('Hello from D!')
+})
+```
+
+### 链式路由
+
+```javascript
+app.route('/book')
+  .get((req, res) => {
+    res.send('Get a random book')
+  })
+  .post((req, res) => {
+    res.send('Add a book')
+  })
+  .put((req, res) => {
+    res.send('Update the book')
+  })
+  .delete((req, res) => {
+    res.send('Delete the book')
+  })
+```
+
+### express.Router
+
+```javascript
+// routes/birds.js
+const express = require('express')
+const router = express.Router()
+
+// 路由级中间件
+router.use((req, res, next) => {
+  console.log('Time:', Date.now())
+  next()
+})
+
+// 定义路由
+router.get('/', (req, res) => {
+  res.send('Birds home page')
+})
+
+router.get('/about', (req, res) => {
+  res.send('About birds')
+})
+
+router.get('/:id', (req, res) => {
+  res.send(`Bird ID: ${req.params.id}`)
+})
+
+module.exports = router
+
+// app.js
+const express = require('express')
+const app = express()
+const birdsRouter = require('./routes/birds')
+
+// 挂载路由
+app.use('/birds', birdsRouter)
+```
+
+### 路由参数处理
+
+```javascript
+const express = require('express')
+const router = express.Router()
+
+// 参数预处理中间件
+router.param('userId', (req, res, next, id) => {
+  // 验证和加载用户
+  const user = getUserById(id)
+  if (!user) {
+    return res.status(404).send('User not found')
+  }
+  req.user = user
+  next()
+})
+
+router.get('/users/:userId', (req, res) => {
+  res.json(req.user)
+})
+
+router.put('/users/:userId', (req, res) => {
+  // req.user 已经可用
+  updateUser(req.user, req.body)
+  res.json(req.user)
+})
+```
+
+## 中间件
+
+### 应用级中间件
+
+```javascript
+const express = require('express')
+const app = express()
+
+// 无挂载路径，每个请求都执行
+app.use((req, res, next) => {
+  console.log('Time:', Date.now())
+  next()
+})
+
+// 挂载到特定路径
+app.use('/user/:id', (req, res, next) => {
+  console.log('Request Type:', req.method)
+  next()
+})
+
+// 针对特定路径和方法
+app.get('/user/:id', (req, res, next) => {
+  res.send('USER')
+})
+
+// 多个处理函数
+app.use('/user/:id', (req, res, next) => {
+  console.log('Request URL:', req.originalUrl)
+  next()
+}, (req, res, next) => {
+  console.log('Request Type:', req.method)
+  next()
+})
+```
+
+### 路由级中间件
+
+```javascript
+const express = require('express')
+const router = express.Router()
+
+// 无挂载路径
+router.use((req, res, next) => {
+  console.log('Time:', Date.now())
+  next()
+})
+
+// 挂载到特定路径
+router.use('/user/:id', (req, res, next) => {
+  console.log('Request URL:', req.originalUrl)
+  next()
+}, (req, res, next) => {
+  console.log('Request Type:', req.method)
+  next()
+})
+
+// 跳过剩余中间件
+router.get('/user/:id', (req, res, next) => {
+  if (req.params.id === '0') next('route')
+  else next()
+}, (req, res, next) => {
+  res.send('regular')
+})
+
+// 处理特殊情况
+router.get('/user/:id', (req, res, next) => {
+  res.send('special')
+})
+
+module.exports = router
+```
+
+### 错误处理中间件
+
+```javascript
+const express = require('express')
+const app = express()
+
+// 普通路由
+app.get('/', (req, res, next) => {
+  // 模拟错误
+  const err = new Error('Something went wrong')
+  next(err)
+})
+
+// 错误日志中间件
+function logErrors(err, req, res, next) {
+  console.error(err.stack)
+  next(err)
+}
+
+// 客户端错误处理
+function clientErrorHandler(err, req, res, next) {
+  if (req.xhr) {
+    res.status(500).send({ error: 'Something failed!' })
+  } else {
+    next(err)
+  }
+}
+
+// 兜底错误处理
+function errorHandler(err, req, res, next) {
+  res.status(500)
+  res.render('error', { error: err })
+}
+
+// 注册错误处理中间件（必须放在最后）
+app.use(logErrors)
+app.use(clientErrorHandler)
+app.use(errorHandler)
+```
+
+### 内置中间件
+
+```javascript
+const express = require('express')
+const app = express()
+
+// 解析 JSON 请求体
+app.use(express.json())
+
+// 解析 URL 编码的请求体
+app.use(express.urlencoded({ extended: true }))
+
+// 提供静态文件
+app.use(express.static('public'))
+
+// 多个静态目录
+app.use(express.static('public'))
+app.use(express.static('files'))
+
+// 虚拟路径前缀
+app.use('/static', express.static('public'))
+
+// 带选项的静态文件服务
+const options = {
+  dotfiles: 'ignore',
+  etag: false,
+  extensions: ['htm', 'html'],
+  index: false,
+  maxAge: '1d',
+  redirect: false,
+  setHeaders: (res, path, stat) => {
+    res.set('x-timestamp', Date.now())
+  }
+}
+
+app.use(express.static('public', options))
+```
+
+### 第三方中间件
+
+```javascript
+const express = require('express')
+const app = express()
+
+// Cookie 解析
+const cookieParser = require('cookie-parser')
+app.use(cookieParser())
+
+// 会话管理
+const session = require('express-session')
+app.use(session({
+  secret: 'keyboard cat',
+  resave: false,
+  saveUninitialized: true,
+  cookie: { secure: true }
+}))
+
+// CORS
+const cors = require('cors')
+app.use(cors())
+
+// 压缩
+const compression = require('compression')
+app.use(compression())
+
+// 日志
+const morgan = require('morgan')
+app.use(morgan('combined'))
+
+// 安全头
+const helmet = require('helmet')
+app.use(helmet())
+```
+
+## 请求对象 (req)
+
+### 常用属性
+
+```javascript
+app.get('/users/:id', (req, res) => {
+  // 路由参数
+  console.log(req.params.id)
+
+  // 查询字符串 (?name=john&age=30)
+  console.log(req.query.name)
+  console.log(req.query.age)
+
+  // 请求体（需要 body-parser）
+  console.log(req.body)
+
+  // 请求头
+  console.log(req.headers)
+  console.log(req.get('Content-Type'))
+
+  // HTTP 方法
+  console.log(req.method)
+
+  // 请求路径
+  console.log(req.path)
+
+  // 原始 URL
+  console.log(req.originalUrl)
+
+  // 协议
+  console.log(req.protocol)
+
+  // 主机名
+  console.log(req.hostname)
+
+  // IP 地址
+  console.log(req.ip)
+  console.log(req.ips)
+
+  // 是否 HTTPS
+  console.log(req.secure)
+
+  // 是否 XHR 请求
+  console.log(req.xhr)
+
+  // Cookies（需要 cookie-parser）
+  console.log(req.cookies)
+  console.log(req.signedCookies)
+
+  res.send('OK')
+})
+```
+
+### 请求体解析
+
+```javascript
+const express = require('express')
+const app = express()
+
+// JSON 请求体
+app.use(express.json({
+  limit: '100kb',
+  strict: true,
+  type: 'application/json'
+}))
+
+// URL 编码请求体
+app.use(express.urlencoded({
+  extended: true,
+  limit: '100kb'
+}))
+
+app.post('/api/users', (req, res) => {
+  console.log(req.body)
+  res.json(req.body)
+})
+```
+
+### 文件上传
+
+```javascript
+const express = require('express')
+const multer = require('multer')
+const app = express()
+
+// 配置存储
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/')
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
+    cb(null, file.fieldname + '-' + uniqueSuffix)
+  }
+})
+
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true)
+    } else {
+      cb(new Error('Only images are allowed'), false)
+    }
+  }
+})
+
+// 单文件上传
+app.post('/upload', upload.single('avatar'), (req, res) => {
+  console.log(req.file)
+  res.json({ file: req.file })
+})
+
+// 多文件上传
+app.post('/photos', upload.array('photos', 12), (req, res) => {
+  console.log(req.files)
+  res.json({ files: req.files })
+})
+
+// 多字段上传
+app.post('/profile', upload.fields([
+  { name: 'avatar', maxCount: 1 },
+  { name: 'gallery', maxCount: 8 }
+]), (req, res) => {
+  console.log(req.files)
+  res.json({ files: req.files })
+})
+
+// 错误处理
+app.post('/upload', (req, res) => {
+  upload.single('avatar')(req, res, (err) => {
+    if (err instanceof multer.MulterError) {
+      return res.status(400).json({ error: err.message })
+    } else if (err) {
+      return res.status(400).json({ error: err.message })
+    }
+    res.json({ file: req.file })
+  })
+})
+```
+
+## 响应对象 (res)
+
+### 发送响应
+
+```javascript
+app.get('/api', (req, res) => {
+  // 发送字符串
+  res.send('Hello World')
+
+  // 发送 JSON
+  res.json({ message: 'Hello' })
+
+  // 发送状态码
+  res.sendStatus(200) // 等同于 res.status(200).send('OK')
+  res.sendStatus(404) // Not Found
+  res.sendStatus(500) // Internal Server Error
+
+  // 发送文件
+  res.sendFile('/path/to/file.pdf')
+
+  // 下载文件
+  res.download('/path/to/file.pdf', 'report.pdf')
+
+  // 重定向
+  res.redirect('/login')
+  res.redirect(301, '/new-url')
+  res.redirect('back')
+
+  // 渲染模板
+  res.render('index', { title: 'Hello' })
+
+  // 结束响应
+  res.end()
+})
+```
+
+### 设置响应
+
+```javascript
+app.get('/api', (req, res) => {
+  // 设置状态码
+  res.status(201)
+
+  // 设置头部
+  res.set('Content-Type', 'text/plain')
+  res.set({
+    'Content-Type': 'text/plain',
+    'X-Custom-Header': 'value'
+  })
+
+  // 添加头部
+  res.append('Link', ['<http://localhost/>', '<http://localhost:3000/>'])
+
+  // 设置 Cookie
+  res.cookie('name', 'value', {
+    maxAge: 900000,
+    httpOnly: true,
+    secure: true,
+    sameSite: 'lax'
+  })
+
+  // 清除 Cookie
+  res.clearCookie('name')
+
+  // 设置内容类型
+  res.type('json')
+  res.type('application/json')
+
+  // 设置链接头
+  res.links({
+    next: 'http://api.example.com/users?page=2',
+    last: 'http://api.example.com/users?page=5'
+  })
+
+  res.json({ message: 'OK' })
+})
+```
+
+### 内容协商
+
+```javascript
+app.get('/api/data', (req, res) => {
+  res.format({
+    'text/plain': () => {
+      res.send('Hello World')
+    },
+    'text/html': () => {
+      res.send('<p>Hello World</p>')
+    },
+    'application/json': () => {
+      res.json({ message: 'Hello World' })
+    },
+    default: () => {
+      res.status(406).send('Not Acceptable')
+    }
+  })
+})
+```
+
+### 流式响应
+
+```javascript
+const fs = require('fs')
+
+app.get('/video', (req, res) => {
+  const path = '/path/to/video.mp4'
+  const stat = fs.statSync(path)
+  const fileSize = stat.size
+  const range = req.headers.range
+
+  if (range) {
+    const parts = range.replace(/bytes=/, '').split('-')
+    const start = parseInt(parts[0], 10)
+    const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1
+    const chunksize = (end - start) + 1
+    const file = fs.createReadStream(path, { start, end })
+
+    res.writeHead(206, {
+      'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+      'Accept-Ranges': 'bytes',
+      'Content-Length': chunksize,
+      'Content-Type': 'video/mp4',
+    })
+
+    file.pipe(res)
+  } else {
+    res.writeHead(200, {
+      'Content-Length': fileSize,
+      'Content-Type': 'video/mp4',
+    })
+    fs.createReadStream(path).pipe(res)
+  }
+})
+```
+
+## 模板引擎
+
+### 配置模板引擎
+
+```javascript
+const express = require('express')
+const path = require('path')
+const app = express()
+
+// 设置视图目录
+app.set('views', path.join(__dirname, 'views'))
+
+// 设置模板引擎
+app.set('view engine', 'pug')
+
+// 渲染模板
+app.get('/', (req, res) => {
+  res.render('index', {
+    title: 'Hello',
+    message: 'Welcome to Express'
+  })
+})
+```
+
+### Pug 模板
+
+```pug
+//- views/layout.pug
+doctype html
+html
+  head
+    title= title
+    link(rel='stylesheet', href='/stylesheets/style.css')
+  body
+    block content
+
+//- views/index.pug
+extends layout
+
+block content
+  h1= message
+  p Welcome to #{title}
+```
+
+### EJS 模板
+
+```javascript
+// 配置 EJS
+app.set('view engine', 'ejs')
+```
+
+```html
+<!-- views/index.ejs -->
+<!DOCTYPE html>
+<html>
+<head>
+  <title><%= title %></title>
+</head>
+<body>
+  <h1><%= message %></h1>
+  <ul>
+    <% users.forEach(function(user) { %>
+      <li><%= user.name %></li>
+    <% }); %>
+  </ul>
+</body>
+</html>
+```
+
+### 自定义模板引擎
+
+```javascript
+const fs = require('fs')
+
+// 注册自定义模板引擎
+app.engine('ntl', (filePath, options, callback) => {
+  fs.readFile(filePath, (err, content) => {
+    if (err) return callback(err)
+
+    const rendered = content.toString()
+      .replace('#title#', `<title>${options.title}</title>`)
+      .replace('#message#', `<h1>${options.message}</h1>`)
+
+    return callback(null, rendered)
+  })
+})
+
+app.set('views', './views')
+app.set('view engine', 'ntl')
+```
+
+## 错误处理
+
+### 基本错误处理
+
+```javascript
+const express = require('express')
+const app = express()
+
+// 同步错误会自动捕获
+app.get('/sync-error', (req, res) => {
+  throw new Error('Sync error!')
+})
+
+// 异步错误需要传递给 next
+app.get('/async-error', (req, res, next) => {
+  fs.readFile('/file-does-not-exist', (err, data) => {
+    if (err) {
+      next(err)
+    } else {
+      res.send(data)
+    }
+  })
+})
+
+// Express 5+ 自动处理 Promise 错误
+app.get('/promise-error', async (req, res, next) => {
+  const user = await getUserById(req.params.id)
+  res.json(user)
+})
+
+// 404 处理
+app.use((req, res, next) => {
+  res.status(404).send("Sorry, can't find that!")
+})
+
+// 错误处理中间件
+app.use((err, req, res, next) => {
+  console.error(err.stack)
+  res.status(500).send('Something broke!')
+})
+```
+
+### 自定义错误类
+
+```javascript
+// 自定义错误类
+class AppError extends Error {
+  constructor(message, statusCode) {
+    super(message)
+    this.statusCode = statusCode
+    this.status = `${statusCode}`.startsWith('4') ? 'fail' : 'error'
+    this.isOperational = true
+
+    Error.captureStackTrace(this, this.constructor)
+  }
+}
+
+// 使用自定义错误
+app.get('/user/:id', async (req, res, next) => {
+  const user = await User.findById(req.params.id)
+  if (!user) {
+    return next(new AppError('User not found', 404))
+  }
+  res.json(user)
+})
+
+// 错误处理中间件
+app.use((err, req, res, next) => {
+  err.statusCode = err.statusCode || 500
+  err.status = err.status || 'error'
+
+  if (process.env.NODE_ENV === 'development') {
+    res.status(err.statusCode).json({
+      status: err.status,
+      error: err,
+      message: err.message,
+      stack: err.stack
+    })
+  } else {
+    if (err.isOperational) {
+      res.status(err.statusCode).json({
+        status: err.status,
+        message: err.message
+      })
+    } else {
+      console.error('ERROR 💥', err)
+      res.status(500).json({
+        status: 'error',
+        message: 'Something went wrong!'
+      })
+    }
+  }
+})
+```
+
+### 异步错误包装器
+
+```javascript
+// 异步错误包装器
+const catchAsync = fn => {
+  return (req, res, next) => {
+    fn(req, res, next).catch(next)
+  }
+}
+
+// 使用包装器
+app.get('/users', catchAsync(async (req, res, next) => {
+  const users = await User.find()
+  res.json(users)
+}))
+
+app.post('/users', catchAsync(async (req, res, next) => {
+  const user = await User.create(req.body)
+  res.status(201).json(user)
+}))
+```
+
+## 会话管理
+
+### express-session
+
+```javascript
+const express = require('express')
+const session = require('express-session')
+const app = express()
+
+app.use(session({
+  secret: 'your-secret-key',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000 // 24小时
+  }
+}))
+
+// 使用会话
+app.get('/login', (req, res) => {
+  req.session.user = { id: 1, name: 'John' }
+  res.send('Logged in')
+})
+
+app.get('/profile', (req, res) => {
+  if (req.session.user) {
+    res.json(req.session.user)
+  } else {
+    res.status(401).send('Not logged in')
+  }
+})
+
+app.get('/logout', (req, res) => {
+  req.session.destroy(err => {
+    if (err) {
+      return res.status(500).send('Error logging out')
+    }
+    res.redirect('/')
+  })
+})
+```
+
+### 会话存储
+
+```javascript
+const session = require('express-session')
+const MongoStore = require('connect-mongo')
+const RedisStore = require('connect-redis').default
+const { createClient } = require('redis')
+
+// MongoDB 存储
+app.use(session({
+  secret: 'secret',
+  resave: false,
+  saveUninitialized: false,
+  store: MongoStore.create({
+    mongoUrl: 'mongodb://localhost/sessions',
+    ttl: 14 * 24 * 60 * 60 // 14天
+  })
+}))
+
+// Redis 存储
+const redisClient = createClient()
+redisClient.connect()
+
+app.use(session({
+  secret: 'secret',
+  resave: false,
+  saveUninitialized: false,
+  store: new RedisStore({
+    client: redisClient,
+    prefix: 'sess:'
+  })
+}))
+```
+
+### 登录示例
+
+```javascript
+const express = require('express')
+const session = require('express-session')
+const escapeHtml = require('escape-html')
+const app = express()
+
+app.use(express.urlencoded({ extended: false }))
+app.use(session({
+  secret: 'keyboard cat',
+  resave: false,
+  saveUninitialized: true
+}))
+
+// 认证中间件
+function isAuthenticated(req, res, next) {
+  if (req.session.user) next()
+  else next('route')
+}
+
+// 首页
+app.get('/', isAuthenticated, (req, res) => {
+  res.send(`Hello, ${escapeHtml(req.session.user)}! <a href="/logout">Logout</a>`)
+})
+
+app.get('/', (req, res) => {
+  res.send(`
+    <form action="/login" method="post">
+      Username: <input name="user"><br>
+      Password: <input name="pass" type="password"><br>
+      <input type="submit" value="Login">
+    </form>
+  `)
+})
+
+// 登录
+app.post('/login', (req, res, next) => {
+  // 验证用户（这里简化处理）
+  if (req.body.user && req.body.pass) {
+    req.session.regenerate(err => {
+      if (err) return next(err)
+
+      req.session.user = req.body.user
+
+      req.session.save(err => {
+        if (err) return next(err)
+        res.redirect('/')
+      })
+    })
+  } else {
+    res.status(400).send('Invalid credentials')
+  }
+})
+
+// 登出
+app.get('/logout', (req, res, next) => {
+  req.session.user = null
+  req.session.save(err => {
+    if (err) return next(err)
+
+    req.session.regenerate(err => {
+      if (err) return next(err)
+      res.redirect('/')
+    })
+  })
+})
+```
+
+## 安全最佳实践
+
+### Helmet 安全头
+
+```javascript
+const express = require('express')
+const helmet = require('helmet')
+const app = express()
+
+// 使用所有安全头
+app.use(helmet())
+
+// 或者单独配置
+app.use(helmet.contentSecurityPolicy({
+  directives: {
+    defaultSrc: ["'self'"],
+    styleSrc: ["'self'", 'maxcdn.bootstrapcdn.com']
+  }
+}))
+
+app.use(helmet.dnsPrefetchControl())
+app.use(helmet.expectCt())
+app.use(helmet.frameguard())
+app.use(helmet.hidePoweredBy())
+app.use(helmet.hsts())
+app.use(helmet.ieNoOpen())
+app.use(helmet.noSniff())
+app.use(helmet.permittedCrossDomainPolicies())
+app.use(helmet.referrerPolicy())
+app.use(helmet.xssFilter())
+```
+
+### CORS 配置
+
+```javascript
+const express = require('express')
+const cors = require('cors')
+const app = express()
+
+// 简单使用
+app.use(cors())
+
+// 详细配置
+const corsOptions = {
+  origin: function (origin, callback) {
+    const whitelist = ['http://localhost:3000', 'https://myapp.com']
+    if (!origin || whitelist.indexOf(origin) !== -1) {
+      callback(null, true)
+    } else {
+      callback(new Error('Not allowed by CORS'))
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+  maxAge: 86400
+}
+
+app.use(cors(corsOptions))
+
+// 针对特定路由
+app.get('/api/public', cors(), (req, res) => {
+  res.json({ message: 'Public data' })
+})
+
+// 预检请求
+app.options('/api/data', cors())
+app.put('/api/data', cors(), (req, res) => {
+  res.json({ message: 'Data updated' })
+})
+```
+
+### 速率限制
+
+```javascript
+const express = require('express')
+const rateLimit = require('express-rate-limit')
+const app = express()
+
+// 全局速率限制
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15分钟
+  max: 100, // 每个 IP 最多 100 个请求
+  message: 'Too many requests, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+})
+
+app.use(limiter)
+
+// API 特定限制
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 50,
+  message: { error: 'Too many API requests' }
+})
+
+app.use('/api/', apiLimiter)
+
+// 登录限制
+const loginLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1小时
+  max: 5,
+  message: 'Too many login attempts'
+})
+
+app.post('/login', loginLimiter, (req, res) => {
+  // 登录逻辑
+})
+```
+
+### 输入验证
+
+```javascript
+const express = require('express')
+const { body, validationResult } = require('express-validator')
+const app = express()
+
+app.use(express.json())
+
+app.post('/user',
+  // 验证规则
+  body('email').isEmail().normalizeEmail(),
+  body('password').isLength({ min: 8 }),
+  body('name').trim().escape(),
+  body('age').optional().isInt({ min: 0 }),
+
+  (req, res) => {
+    const errors = validationResult(req)
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() })
+    }
+
+    // 处理验证后的数据
+    const { email, password, name, age } = req.body
+    res.json({ email, name, age })
+  }
+)
+```
+
+### Cookie 安全
+
+```javascript
+const express = require('express')
+const cookieParser = require('cookie-parser')
+const app = express()
+
+app.use(cookieParser('secret-key'))
+
+// 安全 Cookie 设置
+app.get('/set-cookie', (req, res) => {
+  res.cookie('session', 'value', {
+    httpOnly: true,    // 防止 XSS
+    secure: true,      // 仅 HTTPS
+    sameSite: 'strict', // 防止 CSRF
+    maxAge: 3600000,   // 1小时
+    signed: true       // 签名
+  })
+  res.send('Cookie set')
+})
+
+app.get('/get-cookie', (req, res) => {
+  console.log(req.signedCookies.session)
+  res.send('Cookie value: ' + req.signedCookies.session)
+})
+```
+
+## 数据库集成
+
+### MySQL
+
+```javascript
+const express = require('express')
+const mysql = require('mysql2/promise')
+const app = express()
+
+// 创建连接池
+const pool = mysql.createPool({
+  host: 'localhost',
+  user: 'root',
+  password: 'password',
+  database: 'myapp',
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+})
+
+// 使用连接池
+app.get('/users', async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT * FROM users')
+    res.json(rows)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.get('/users/:id', async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      'SELECT * FROM users WHERE id = ?',
+      [req.params.id]
+    )
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' })
+    }
+    res.json(rows[0])
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.post('/users', async (req, res) => {
+  try {
+    const { name, email } = req.body
+    const [result] = await pool.query(
+      'INSERT INTO users (name, email) VALUES (?, ?)',
+      [name, email]
+    )
+    res.status(201).json({ id: result.insertId, name, email })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+```
+
+### MongoDB
+
+```javascript
+const express = require('express')
+const mongoose = require('mongoose')
+const app = express()
+
+// 连接 MongoDB
+mongoose.connect('mongodb://localhost/myapp', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
+
+// 定义 Schema
+const userSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  createdAt: { type: Date, default: Date.now }
+})
+
+const User = mongoose.model('User', userSchema)
+
+// 路由
+app.get('/users', async (req, res) => {
+  try {
+    const users = await User.find()
+    res.json(users)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.post('/users', async (req, res) => {
+  try {
+    const user = new User(req.body)
+    await user.save()
+    res.status(201).json(user)
+  } catch (err) {
+    res.status(400).json({ error: err.message })
+  }
+})
+
+app.put('/users/:id', async (req, res) => {
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true }
+    )
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' })
+    }
+    res.json(user)
+  } catch (err) {
+    res.status(400).json({ error: err.message })
+  }
+})
+
+app.delete('/users/:id', async (req, res) => {
+  try {
+    const user = await User.findByIdAndDelete(req.params.id)
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' })
+    }
+    res.status(204).send()
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+```
+
+### PostgreSQL
+
+```javascript
+const express = require('express')
+const { Pool } = require('pg')
+const app = express()
+
+const pool = new Pool({
+  user: 'dbuser',
+  host: 'localhost',
+  database: 'myapp',
+  password: 'password',
+  port: 5432,
+})
+
+app.get('/users', async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM users')
+    res.json(rows)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.get('/users/:id', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      'SELECT * FROM users WHERE id = $1',
+      [req.params.id]
+    )
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' })
+    }
+    res.json(rows[0])
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+```
+
+## RESTful API 设计
+
+### 完整的 CRUD 示例
+
+```javascript
+const express = require('express')
+const router = express.Router()
+
+// 假设的数据存储
+let users = [
+  { id: 1, name: 'John', email: 'john@example.com' },
+  { id: 2, name: 'Jane', email: 'jane@example.com' }
+]
+
+// 获取所有用户
+router.get('/', (req, res) => {
+  const { page = 1, limit = 10, sort, order = 'asc' } = req.query
+
+  let result = [...users]
+
+  // 排序
+  if (sort) {
+    result.sort((a, b) => {
+      if (order === 'desc') {
+        return b[sort] > a[sort] ? 1 : -1
+      }
+      return a[sort] > b[sort] ? 1 : -1
+    })
+  }
+
+  // 分页
+  const startIndex = (page - 1) * limit
+  const endIndex = page * limit
+  const paginatedResult = result.slice(startIndex, endIndex)
+
+  res.json({
+    data: paginatedResult,
+    pagination: {
+      page: parseInt(page),
+      limit: parseInt(limit),
+      total: users.length,
+      pages: Math.ceil(users.length / limit)
+    }
+  })
+})
+
+// 获取单个用户
+router.get('/:id', (req, res) => {
+  const user = users.find(u => u.id === parseInt(req.params.id))
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' })
+  }
+  res.json(user)
+})
+
+// 创建用户
+router.post('/', (req, res) => {
+  const { name, email } = req.body
+
+  if (!name || !email) {
+    return res.status(400).json({ error: 'Name and email are required' })
+  }
+
+  const newUser = {
+    id: users.length + 1,
+    name,
+    email
+  }
+
+  users.push(newUser)
+  res.status(201).json(newUser)
+})
+
+// 更新用户
+router.put('/:id', (req, res) => {
+  const index = users.findIndex(u => u.id === parseInt(req.params.id))
+  if (index === -1) {
+    return res.status(404).json({ error: 'User not found' })
+  }
+
+  const { name, email } = req.body
+  users[index] = { ...users[index], name, email }
+  res.json(users[index])
+})
+
+// 部分更新用户
+router.patch('/:id', (req, res) => {
+  const index = users.findIndex(u => u.id === parseInt(req.params.id))
+  if (index === -1) {
+    return res.status(404).json({ error: 'User not found' })
+  }
+
+  users[index] = { ...users[index], ...req.body }
+  res.json(users[index])
+})
+
+// 删除用户
+router.delete('/:id', (req, res) => {
+  const index = users.findIndex(u => u.id === parseInt(req.params.id))
+  if (index === -1) {
+    return res.status(404).json({ error: 'User not found' })
+  }
+
+  users.splice(index, 1)
+  res.status(204).send()
+})
+
+module.exports = router
+```
+
+### API 版本控制
+
+```javascript
+const express = require('express')
+const app = express()
+
+// v1 API
+const v1Router = express.Router()
+v1Router.get('/users', (req, res) => {
+  res.json({ version: 'v1', users: [] })
+})
+
+// v2 API
+const v2Router = express.Router()
+v2Router.get('/users', (req, res) => {
+  res.json({ version: 'v2', data: { users: [] } })
+})
+
+// 挂载版本路由
+app.use('/api/v1', v1Router)
+app.use('/api/v2', v2Router)
+
+// 或者使用 Header 版本控制
+app.use('/api', (req, res, next) => {
+  const version = req.get('Accept-Version') || '1'
+  req.apiVersion = version
+  next()
+})
+
+app.get('/api/users', (req, res) => {
+  if (req.apiVersion === '2') {
+    res.json({ version: 'v2', data: { users: [] } })
+  } else {
+    res.json({ version: 'v1', users: [] })
+  }
+})
+```
+
+## 部署
+
+### 生产环境配置
+
+```javascript
+const express = require('express')
+const compression = require('compression')
+const helmet = require('helmet')
+const morgan = require('morgan')
+const app = express()
+
+// 信任代理（如果在反向代理后面）
+app.set('trust proxy', 1)
+
+// 压缩响应
+app.use(compression())
+
+// 安全头
+app.use(helmet())
+
+// 日志
+if (process.env.NODE_ENV === 'production') {
+  app.use(morgan('combined'))
+} else {
+  app.use(morgan('dev'))
+}
+
+// 禁用 x-powered-by
+app.disable('x-powered-by')
+
+// 路由
+app.get('/', (req, res) => {
+  res.send('Hello World')
+})
+
+// 错误处理
+app.use((err, req, res, next) => {
+  console.error(err.stack)
+  res.status(500).send('Something broke!')
+})
+
+const port = process.env.PORT || 3000
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`)
+})
+```
+
+### PM2 配置
+
+```javascript
+// ecosystem.config.js
+module.exports = {
+  apps: [{
+    name: 'myapp',
+    script: 'app.js',
+    instances: 'max',
+    exec_mode: 'cluster',
+    env: {
+      NODE_ENV: 'development'
+    },
+    env_production: {
+      NODE_ENV: 'production'
+    }
+  }]
+}
+```
+
+```bash
+# 启动
+pm2 start ecosystem.config.js --env production
+
+# 查看状态
+pm2 status
+
+# 查看日志
+pm2 logs
+
+# 重启
+pm2 restart myapp
+
+# 停止
+pm2 stop myapp
+
+# 删除
+pm2 delete myapp
+```
+
+### Docker 配置
+
+```dockerfile
+# Dockerfile
+FROM node:18-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+
+RUN npm ci --only=production
+
+COPY . .
+
+EXPOSE 3000
+
+USER node
+
+CMD ["node", "app.js"]
+```
+
+```yaml
+# docker-compose.yml
+version: '3.8'
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=mongodb://mongo:27017/myapp
+    depends_on:
+      - mongo
+
+  mongo:
+    image: mongo:latest
+    volumes:
+      - mongo-data:/data/db
+
+volumes:
+  mongo-data:
+```
+
+## 测试
+
+### 单元测试
+
+```javascript
+// tests/app.test.js
+const request = require('supertest')
+const app = require('../app')
+
+describe('GET /', () => {
+  it('responds with Hello World', async () => {
+    const response = await request(app).get('/')
+    expect(response.status).toBe(200)
+    expect(response.text).toBe('Hello World')
+  })
+})
+
+describe('GET /users', () => {
+  it('responds with json', async () => {
+    const response = await request(app)
+      .get('/users')
+      .set('Accept', 'application/json')
+
+    expect(response.status).toBe(200)
+    expect(response.type).toBe('application/json')
+    expect(response.body).toHaveProperty('users')
+  })
+})
+
+describe('POST /users', () => {
+  it('creates a new user', async () => {
+    const newUser = { name: 'John', email: 'john@example.com' }
+
+    const response = await request(app)
+      .post('/users')
+      .send(newUser)
+      .set('Accept', 'application/json')
+
+    expect(response.status).toBe(201)
+    expect(response.body.name).toBe(newUser.name)
+    expect(response.body.email).toBe(newUser.email)
+  })
+
+  it('returns 400 for invalid data', async () => {
+    const response = await request(app)
+      .post('/users')
+      .send({ name: '' })
+      .set('Accept', 'application/json')
+
+    expect(response.status).toBe(400)
+  })
+})
+```
+
+### 集成测试
+
+```javascript
+// tests/integration/api.test.js
+const request = require('supertest')
+const mongoose = require('mongoose')
+const app = require('../../app')
+
+beforeAll(async () => {
+  await mongoose.connect(process.env.TEST_DATABASE_URL)
+})
+
+afterAll(async () => {
+  await mongoose.connection.close()
+})
+
+beforeEach(async () => {
+  await mongoose.connection.dropDatabase()
+})
+
+describe('User API', () => {
+  describe('POST /api/users', () => {
+    it('should create a user', async () => {
+      const res = await request(app)
+        .post('/api/users')
+        .send({ name: 'Test User', email: 'test@test.com' })
+
+      expect(res.status).toBe(201)
+      expect(res.body.name).toBe('Test User')
+    })
+  })
+
+  describe('GET /api/users/:id', () => {
+    it('should get a user by id', async () => {
+      const createRes = await request(app)
+        .post('/api/users')
+        .send({ name: 'Test User', email: 'test@test.com' })
+
+      const res = await request(app)
+        .get(`/api/users/${createRes.body._id}`)
+
+      expect(res.status).toBe(200)
+      expect(res.body.name).toBe('Test User')
+    })
+  })
+})
+```
+
+## API 参考
+
+### Application
+
+```javascript
+const express = require('express')
+const app = express()
+
+// 配置
+app.set('view engine', 'pug')
+app.get('view engine') // 获取配置
+
+// 中间件
+app.use(middleware)
+app.use('/path', middleware)
+
+// 路由
+app.get(path, handler)
+app.post(path, handler)
+app.put(path, handler)
+app.delete(path, handler)
+app.all(path, handler)
+
+// 路由参数
+app.param(name, callback)
+
+// 路由器
+app.route(path)
+
+// 挂载
+app.use(path, router)
+
+// 监听
+app.listen(port, [hostname], [callback])
+```
+
+### Request
+
+```javascript
+// 属性
+req.app          // Express 应用实例
+req.baseUrl      // 路由器的基础 URL
+req.body         // 请求体
+req.cookies      // Cookies
+req.fresh        // 是否新鲜
+req.hostname     // 主机名
+req.ip           // IP 地址
+req.ips          // IP 地址数组
+req.method       // HTTP 方法
+req.originalUrl  // 原始 URL
+req.params       // 路由参数
+req.path         // 路径
+req.protocol     // 协议
+req.query        // 查询参数
+req.route        // 当前路由
+req.secure       // 是否 HTTPS
+req.signedCookies // 签名 Cookies
+req.stale        // 是否过期
+req.subdomains   // 子域名数组
+req.xhr          // 是否 XHR
+
+// 方法
+req.accepts(types)
+req.acceptsCharsets(charset)
+req.acceptsEncodings(encoding)
+req.acceptsLanguages(lang)
+req.get(field)
+req.is(type)
+req.range(size)
+```
+
+### Response
+
+```javascript
+// 属性
+res.app          // Express 应用实例
+res.headersSent  // 是否已发送头部
+res.locals       // 本地变量
+
+// 方法
+res.append(field, value)
+res.attachment([filename])
+res.cookie(name, value, [options])
+res.clearCookie(name, [options])
+res.download(path, [filename], [callback])
+res.end([data], [encoding])
+res.format(object)
+res.get(field)
+res.json([body])
+res.jsonp([body])
+res.links(links)
+res.location(path)
+res.redirect([status], path)
+res.render(view, [locals], [callback])
+res.send([body])
+res.sendFile(path, [options], [callback])
+res.sendStatus(statusCode)
+res.set(field, [value])
+res.status(code)
+res.type(type)
+res.vary(field)
+```
+
+### Router
+
+```javascript
+const router = express.Router([options])
+
+// 中间件
+router.use([path], middleware)
+
+// 路由
+router.get(path, handler)
+router.post(path, handler)
+router.put(path, handler)
+router.delete(path, handler)
+router.all(path, handler)
+
+// 参数
+router.param(name, callback)
+
+// 链式路由
+router.route(path)
+```
+
+## 常见问题
+
+### 处理大文件上传
+
+```javascript
+const express = require('express')
+const multer = require('multer')
+const app = express()
+
+const upload = multer({
+  dest: 'uploads/',
+  limits: {
+    fileSize: 50 * 1024 * 1024 // 50MB
+  }
+})
+
+app.post('/upload', upload.single('file'), (req, res) => {
+  res.json({ file: req.file })
+})
+
+// 处理超大文件错误
+app.use((err, req, res, next) => {
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(413).json({ error: 'File too large' })
+  }
+  next(err)
+})
+```
+
+### 优雅关闭
+
+```javascript
+const express = require('express')
+const app = express()
+
+const server = app.listen(3000, () => {
+  console.log('Server running')
+})
+
+process.on('SIGTERM', () => {
+  console.log('SIGTERM signal received: closing HTTP server')
+  server.close(() => {
+    console.log('HTTP server closed')
+    process.exit(0)
+  })
+})
+```
+
+### 处理未捕获异常
+
+```javascript
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err)
+  process.exit(1)
+})
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason)
+})
+```

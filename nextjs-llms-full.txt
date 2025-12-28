@@ -1,0 +1,1821 @@
+---
+url: https://nextjs.org/docs
+description: Next.js 是一个用于构建全栈 Web 应用程序的 React 框架。它提供了服务器端渲染(SSR)、静态站点生成(SSG)、增量静态再生(ISR)、App Router、Server Components 等现代化特性。
+---
+
+# Next.js 完整文档
+
+## 简介
+
+Next.js 是由 Vercel 开发的 React 全栈框架，用于构建高性能的 Web 应用程序。它提供了以下核心特性：
+
+- **App Router**: 基于 React Server Components 的新路由系统
+- **Pages Router**: 传统的基于文件系统的路由
+- **服务器端渲染 (SSR)**: 每次请求时在服务器上渲染页面
+- **静态站点生成 (SSG)**: 构建时预渲染页面
+- **增量静态再生 (ISR)**: 在不重新构建整个站点的情况下更新静态页面
+- **Server Components**: 在服务器上渲染的 React 组件
+- **Server Actions**: 在服务器上执行的异步函数
+- **自动代码分割**: 按需加载 JavaScript
+- **内置图片优化**: 自动优化图片加载
+- **API Routes**: 构建 API 端点
+
+## 快速开始
+
+### 创建新项目
+
+```bash
+npx create-next-app@latest my-app
+cd my-app
+npm run dev
+```
+
+### 项目结构 (App Router)
+
+```
+my-app/
+├── app/
+│   ├── layout.tsx      # 根布局
+│   ├── page.tsx        # 首页
+│   ├── globals.css     # 全局样式
+│   ├── about/
+│   │   └── page.tsx    # /about 页面
+│   └── api/
+│       └── hello/
+│           └── route.ts # API 路由
+├── public/             # 静态资源
+├── components/         # React 组件
+├── next.config.js      # Next.js 配置
+└── package.json
+```
+
+### 项目结构 (Pages Router)
+
+```
+my-app/
+├── pages/
+│   ├── _app.tsx        # 应用入口
+│   ├── _document.tsx   # HTML 文档
+│   ├── index.tsx       # 首页
+│   ├── about.tsx       # /about 页面
+│   └── api/
+│       └── hello.ts    # API 路由
+├── public/             # 静态资源
+├── styles/             # 样式文件
+└── next.config.js
+```
+
+## App Router
+
+### 基本页面
+
+```tsx
+// app/page.tsx - 首页
+export default function Home() {
+  return (
+    <main>
+      <h1>Welcome to Next.js</h1>
+    </main>
+  )
+}
+```
+
+### 布局 (Layout)
+
+```tsx
+// app/layout.tsx - 根布局
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'My App',
+  description: 'My App description',
+}
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en">
+      <body>{children}</body>
+    </html>
+  )
+}
+```
+
+### 嵌套布局
+
+```tsx
+// app/dashboard/layout.tsx
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <div>
+      <nav>Dashboard Nav</nav>
+      <main>{children}</main>
+    </div>
+  )
+}
+```
+
+### 动态路由
+
+```tsx
+// app/blog/[slug]/page.tsx
+interface Props {
+  params: Promise<{ slug: string }>
+}
+
+export default async function BlogPost({ params }: Props) {
+  const { slug } = await params
+  return <h1>Blog Post: {slug}</h1>
+}
+
+// 生成静态路径
+export async function generateStaticParams() {
+  const posts = await getPosts()
+  return posts.map((post) => ({
+    slug: post.slug,
+  }))
+}
+```
+
+### 捕获所有路由
+
+```tsx
+// app/docs/[...slug]/page.tsx
+interface Props {
+  params: Promise<{ slug: string[] }>
+}
+
+export default async function DocsPage({ params }: Props) {
+  const { slug } = await params
+  // slug = ['a', 'b', 'c'] for /docs/a/b/c
+  return <h1>Docs: {slug.join('/')}</h1>
+}
+```
+
+### 路由组
+
+```
+app/
+├── (marketing)/
+│   ├── about/page.tsx      # /about
+│   └── contact/page.tsx    # /contact
+├── (shop)/
+│   ├── products/page.tsx   # /products
+│   └── cart/page.tsx       # /cart
+└── layout.tsx
+```
+
+### 并行路由
+
+```tsx
+// app/layout.tsx
+export default function Layout({
+  children,
+  team,
+  analytics,
+}: {
+  children: React.ReactNode
+  team: React.ReactNode
+  analytics: React.ReactNode
+}) {
+  return (
+    <>
+      {children}
+      {team}
+      {analytics}
+    </>
+  )
+}
+
+// app/@team/page.tsx
+export default function Team() {
+  return <div>Team Content</div>
+}
+
+// app/@analytics/page.tsx
+export default function Analytics() {
+  return <div>Analytics Content</div>
+}
+```
+
+## Server Components
+
+### 基本用法
+
+```tsx
+// Server Component (默认)
+// app/posts/page.tsx
+async function getPosts() {
+  const res = await fetch('https://api.example.com/posts')
+  return res.json()
+}
+
+export default async function PostsPage() {
+  const posts = await getPosts()
+
+  return (
+    <ul>
+      {posts.map((post) => (
+        <li key={post.id}>{post.title}</li>
+      ))}
+    </ul>
+  )
+}
+```
+
+### Client Components
+
+```tsx
+'use client'
+
+import { useState } from 'react'
+
+export default function Counter() {
+  const [count, setCount] = useState(0)
+
+  return (
+    <button onClick={() => setCount(count + 1)}>
+      Count: {count}
+    </button>
+  )
+}
+```
+
+### 组合使用
+
+```tsx
+// app/page.tsx (Server Component)
+import Counter from './Counter' // Client Component
+
+async function getData() {
+  const res = await fetch('https://api.example.com/data')
+  return res.json()
+}
+
+export default async function Page() {
+  const data = await getData()
+
+  return (
+    <div>
+      <h1>{data.title}</h1>
+      <Counter /> {/* 客户端交互 */}
+    </div>
+  )
+}
+```
+
+## 数据获取
+
+### Server Component 数据获取
+
+```tsx
+// 默认缓存 (类似 getStaticProps)
+async function getData() {
+  const res = await fetch('https://api.example.com/data')
+  return res.json()
+}
+
+// 不缓存 (类似 getServerSideProps)
+async function getDynamicData() {
+  const res = await fetch('https://api.example.com/data', {
+    cache: 'no-store'
+  })
+  return res.json()
+}
+
+// 定时重新验证 (ISR)
+async function getRevalidatedData() {
+  const res = await fetch('https://api.example.com/data', {
+    next: { revalidate: 60 } // 60秒后重新验证
+  })
+  return res.json()
+}
+
+export default async function Page() {
+  const data = await getData()
+  return <div>{data.title}</div>
+}
+```
+
+### 并行数据获取
+
+```tsx
+export default async function Page() {
+  // 并行获取数据
+  const [posts, users] = await Promise.all([
+    fetch('https://api.example.com/posts').then(r => r.json()),
+    fetch('https://api.example.com/users').then(r => r.json()),
+  ])
+
+  return (
+    <div>
+      <PostList posts={posts} />
+      <UserList users={users} />
+    </div>
+  )
+}
+```
+
+### 顺序数据获取
+
+```tsx
+import { Suspense } from 'react'
+
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ username: string }>
+}) {
+  const { username } = await params
+  const artist = await getArtist(username)
+
+  return (
+    <>
+      <h1>{artist.name}</h1>
+      <Suspense fallback={<div>Loading...</div>}>
+        <Playlists artistID={artist.id} />
+      </Suspense>
+    </>
+  )
+}
+
+async function Playlists({ artistID }: { artistID: string }) {
+  const playlists = await getArtistPlaylists(artistID)
+  return (
+    <ul>
+      {playlists.map((playlist) => (
+        <li key={playlist.id}>{playlist.name}</li>
+      ))}
+    </ul>
+  )
+}
+```
+
+## 渲染模式
+
+### 静态渲染 (SSG)
+
+```tsx
+// app/posts/page.tsx
+// 默认静态渲染
+export default async function PostsPage() {
+  const posts = await fetch('https://api.example.com/posts').then(r => r.json())
+  return <PostList posts={posts} />
+}
+
+// 强制静态渲染
+export const dynamic = 'force-static'
+```
+
+### 动态渲染 (SSR)
+
+```tsx
+// app/dashboard/page.tsx
+export const dynamic = 'force-dynamic'
+
+export default async function Dashboard() {
+  const data = await fetch('https://api.example.com/dashboard', {
+    cache: 'no-store'
+  }).then(r => r.json())
+
+  return <DashboardContent data={data} />
+}
+```
+
+### 增量静态再生 (ISR)
+
+```tsx
+// app/posts/[id]/page.tsx
+interface Post {
+  id: string
+  title: string
+  content: string
+}
+
+// 每60秒重新验证
+export const revalidate = 60
+
+export async function generateStaticParams() {
+  const posts: Post[] = await fetch('https://api.example.com/posts')
+    .then((res) => res.json())
+
+  return posts.map((post) => ({
+    id: String(post.id),
+  }))
+}
+
+export default async function PostPage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id } = await params
+  const post: Post = await fetch(`https://api.example.com/posts/${id}`)
+    .then((res) => res.json())
+
+  return (
+    <article>
+      <h1>{post.title}</h1>
+      <p>{post.content}</p>
+    </article>
+  )
+}
+```
+
+### 禁用 SSR (仅客户端)
+
+```tsx
+import dynamic from 'next/dynamic'
+
+const ClientOnlyComponent = dynamic(
+  () => import('./ClientComponent'),
+  { ssr: false }
+)
+
+export default function Page() {
+  return <ClientOnlyComponent />
+}
+```
+
+## Server Actions
+
+### 基本用法
+
+```tsx
+// app/actions.ts
+'use server'
+
+import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
+
+export async function createPost(formData: FormData) {
+  const title = formData.get('title') as string
+  const content = formData.get('content') as string
+
+  // 保存到数据库
+  await db.post.create({
+    data: { title, content }
+  })
+
+  // 重新验证缓存
+  revalidatePath('/posts')
+
+  // 重定向
+  redirect('/posts')
+}
+```
+
+### 表单提交
+
+```tsx
+// app/posts/new/page.tsx
+import { createPost } from '@/app/actions'
+
+export default function NewPostPage() {
+  return (
+    <form action={createPost}>
+      <input name="title" placeholder="Title" required />
+      <textarea name="content" placeholder="Content" required />
+      <button type="submit">Create Post</button>
+    </form>
+  )
+}
+```
+
+### 使用 useActionState
+
+```tsx
+'use client'
+
+import { useActionState } from 'react'
+import { createUser } from '@/app/actions'
+
+const initialState = {
+  message: '',
+  errors: {},
+}
+
+export function SignupForm() {
+  const [state, formAction, pending] = useActionState(createUser, initialState)
+
+  return (
+    <form action={formAction}>
+      <label htmlFor="email">Email</label>
+      <input type="email" id="email" name="email" required />
+      {state.errors?.email && <p>{state.errors.email}</p>}
+
+      <label htmlFor="password">Password</label>
+      <input type="password" id="password" name="password" required />
+      {state.errors?.password && <p>{state.errors.password}</p>}
+
+      {state.message && <p aria-live="polite">{state.message}</p>}
+
+      <button type="submit" disabled={pending}>
+        {pending ? 'Signing up...' : 'Sign up'}
+      </button>
+    </form>
+  )
+}
+```
+
+### Server Action 验证
+
+```tsx
+'use server'
+
+import { z } from 'zod'
+
+const schema = z.object({
+  email: z.string().email('Invalid email'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+})
+
+export async function createUser(prevState: any, formData: FormData) {
+  const validatedFields = schema.safeParse({
+    email: formData.get('email'),
+    password: formData.get('password'),
+  })
+
+  if (!validatedFields.success) {
+    return {
+      errors: validatedFields.error.flatten().fieldErrors,
+      message: 'Validation failed',
+    }
+  }
+
+  // 创建用户...
+  try {
+    await db.user.create({
+      data: validatedFields.data,
+    })
+    return { message: 'User created successfully' }
+  } catch (error) {
+    return { message: 'Failed to create user' }
+  }
+}
+```
+
+### 传递额外参数
+
+```tsx
+'use client'
+
+import { updateUser } from './actions'
+
+export function UserProfile({ userId }: { userId: string }) {
+  const updateUserWithId = updateUser.bind(null, userId)
+
+  return (
+    <form action={updateUserWithId}>
+      <input type="text" name="name" />
+      <button type="submit">Update</button>
+    </form>
+  )
+}
+
+// actions.ts
+'use server'
+
+export async function updateUser(userId: string, formData: FormData) {
+  const name = formData.get('name') as string
+  await db.user.update({
+    where: { id: userId },
+    data: { name },
+  })
+}
+```
+
+## API Routes (Route Handlers)
+
+### 基本 API 路由
+
+```tsx
+// app/api/hello/route.ts
+import { NextResponse } from 'next/server'
+
+export async function GET() {
+  return NextResponse.json({ message: 'Hello World' })
+}
+
+export async function POST(request: Request) {
+  const body = await request.json()
+  return NextResponse.json({ received: body })
+}
+```
+
+### 动态 API 路由
+
+```tsx
+// app/api/users/[id]/route.ts
+import { NextResponse } from 'next/server'
+
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params
+  const user = await db.user.findUnique({ where: { id } })
+
+  if (!user) {
+    return NextResponse.json(
+      { error: 'User not found' },
+      { status: 404 }
+    )
+  }
+
+  return NextResponse.json(user)
+}
+
+export async function PUT(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params
+  const body = await request.json()
+
+  const user = await db.user.update({
+    where: { id },
+    data: body,
+  })
+
+  return NextResponse.json(user)
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params
+  await db.user.delete({ where: { id } })
+  return new NextResponse(null, { status: 204 })
+}
+```
+
+### 处理请求参数
+
+```tsx
+// app/api/search/route.ts
+import { NextRequest, NextResponse } from 'next/server'
+
+export async function GET(request: NextRequest) {
+  const searchParams = request.nextUrl.searchParams
+  const query = searchParams.get('q')
+  const page = parseInt(searchParams.get('page') || '1')
+
+  const results = await search(query, page)
+  return NextResponse.json(results)
+}
+```
+
+### 处理 Headers 和 Cookies
+
+```tsx
+// app/api/auth/route.ts
+import { NextRequest, NextResponse } from 'next/server'
+import { cookies, headers } from 'next/headers'
+
+export async function GET(request: NextRequest) {
+  // 读取 headers
+  const headersList = await headers()
+  const userAgent = headersList.get('user-agent')
+
+  // 读取 cookies
+  const cookieStore = await cookies()
+  const token = cookieStore.get('token')
+
+  return NextResponse.json({ userAgent, token: token?.value })
+}
+
+export async function POST(request: NextRequest) {
+  const body = await request.json()
+
+  const response = NextResponse.json({ success: true })
+
+  // 设置 cookie
+  response.cookies.set('session', 'value', {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'lax',
+    maxAge: 60 * 60 * 24 * 7, // 1 week
+  })
+
+  return response
+}
+```
+
+### Edge Runtime
+
+```tsx
+// app/api/edge/route.ts
+import { NextResponse } from 'next/server'
+
+export const runtime = 'edge'
+
+export async function GET() {
+  return NextResponse.json({ edge: true })
+}
+```
+
+## 中间件
+
+### 基本中间件
+
+```tsx
+// middleware.ts
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+
+export function middleware(request: NextRequest) {
+  // 添加自定义 header
+  const response = NextResponse.next()
+  response.headers.set('x-custom-header', 'value')
+  return response
+}
+
+export const config = {
+  matcher: '/api/:path*',
+}
+```
+
+### 认证中间件
+
+```tsx
+// middleware.ts
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+import { decrypt } from '@/lib/session'
+
+const protectedRoutes = ['/dashboard', '/profile']
+const publicRoutes = ['/login', '/signup', '/']
+
+export async function middleware(request: NextRequest) {
+  const path = request.nextUrl.pathname
+  const isProtectedRoute = protectedRoutes.includes(path)
+  const isPublicRoute = publicRoutes.includes(path)
+
+  const cookie = request.cookies.get('session')?.value
+  const session = await decrypt(cookie)
+
+  // 未认证用户访问受保护路由
+  if (isProtectedRoute && !session?.userId) {
+    return NextResponse.redirect(new URL('/login', request.nextUrl))
+  }
+
+  // 已认证用户访问公开路由
+  if (isPublicRoute && session?.userId && !path.startsWith('/dashboard')) {
+    return NextResponse.redirect(new URL('/dashboard', request.nextUrl))
+  }
+
+  return NextResponse.next()
+}
+
+export const config = {
+  matcher: ['/((?!api|_next/static|_next/image|.*\\.png$).*)'],
+}
+```
+
+### 重定向和重写
+
+```tsx
+// middleware.ts
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+
+export function middleware(request: NextRequest) {
+  // 重定向
+  if (request.nextUrl.pathname === '/old-page') {
+    return NextResponse.redirect(new URL('/new-page', request.url))
+  }
+
+  // 重写 (URL 不变，但显示不同内容)
+  if (request.nextUrl.pathname === '/proxy') {
+    return NextResponse.rewrite(new URL('/api/proxy', request.url))
+  }
+
+  return NextResponse.next()
+}
+```
+
+## 图片优化
+
+### next/image 组件
+
+```tsx
+import Image from 'next/image'
+
+// 本地图片
+import profilePic from './profile.jpg'
+
+export default function Page() {
+  return (
+    <>
+      {/* 本地图片 (自动获取尺寸) */}
+      <Image
+        src={profilePic}
+        alt="Profile picture"
+        placeholder="blur" // 模糊占位符
+      />
+
+      {/* 远程图片 (需要指定尺寸) */}
+      <Image
+        src="https://example.com/image.jpg"
+        alt="Remote image"
+        width={500}
+        height={300}
+      />
+
+      {/* 填充容器 */}
+      <div style={{ position: 'relative', width: '100%', height: '400px' }}>
+        <Image
+          src="/hero.jpg"
+          alt="Hero"
+          fill
+          style={{ objectFit: 'cover' }}
+        />
+      </div>
+
+      {/* 优先加载 (LCP 图片) */}
+      <Image
+        src="/hero.jpg"
+        alt="Hero"
+        width={1200}
+        height={600}
+        priority
+      />
+    </>
+  )
+}
+```
+
+### 配置远程图片域名
+
+```js
+// next.config.js
+module.exports = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'example.com',
+        port: '',
+        pathname: '/images/**',
+      },
+    ],
+  },
+}
+```
+
+## 链接和导航
+
+### next/link 组件
+
+```tsx
+import Link from 'next/link'
+
+export default function Navigation() {
+  return (
+    <nav>
+      <Link href="/">Home</Link>
+      <Link href="/about">About</Link>
+      <Link href="/blog/hello-world">Blog Post</Link>
+
+      {/* 动态路由 */}
+      <Link href={`/posts/${post.id}`}>
+        {post.title}
+      </Link>
+
+      {/* 预加载 */}
+      <Link href="/dashboard" prefetch={true}>
+        Dashboard
+      </Link>
+
+      {/* 替换历史记录 */}
+      <Link href="/login" replace>
+        Login
+      </Link>
+    </nav>
+  )
+}
+```
+
+### 编程式导航
+
+```tsx
+'use client'
+
+import { useRouter } from 'next/navigation'
+
+export default function Page() {
+  const router = useRouter()
+
+  return (
+    <>
+      <button onClick={() => router.push('/dashboard')}>
+        Go to Dashboard
+      </button>
+      <button onClick={() => router.replace('/login')}>
+        Login (replace)
+      </button>
+      <button onClick={() => router.back()}>
+        Go Back
+      </button>
+      <button onClick={() => router.refresh()}>
+        Refresh
+      </button>
+    </>
+  )
+}
+```
+
+## Metadata
+
+### 静态 Metadata
+
+```tsx
+// app/layout.tsx
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'My App',
+  description: 'My app description',
+  keywords: ['Next.js', 'React', 'JavaScript'],
+  authors: [{ name: 'Author Name' }],
+  openGraph: {
+    title: 'My App',
+    description: 'My app description',
+    url: 'https://myapp.com',
+    siteName: 'My App',
+    images: [
+      {
+        url: 'https://myapp.com/og.jpg',
+        width: 1200,
+        height: 630,
+      },
+    ],
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'My App',
+    description: 'My app description',
+    images: ['https://myapp.com/og.jpg'],
+  },
+}
+```
+
+### 动态 Metadata
+
+```tsx
+// app/posts/[id]/page.tsx
+import type { Metadata, ResolvingMetadata } from 'next'
+
+type Props = {
+  params: Promise<{ id: string }>
+}
+
+export async function generateMetadata(
+  { params }: Props,
+  parent: ResolvingMetadata
+): Promise<Metadata> {
+  const { id } = await params
+  const post = await getPost(id)
+
+  return {
+    title: post.title,
+    description: post.excerpt,
+    openGraph: {
+      title: post.title,
+      description: post.excerpt,
+      images: [post.image],
+    },
+  }
+}
+
+export default async function PostPage({ params }: Props) {
+  const { id } = await params
+  const post = await getPost(id)
+  return <article>{post.content}</article>
+}
+```
+
+### Title 模板
+
+```tsx
+// app/layout.tsx
+export const metadata: Metadata = {
+  title: {
+    template: '%s | My App',
+    default: 'My App',
+  },
+}
+
+// app/about/page.tsx
+export const metadata: Metadata = {
+  title: 'About', // 输出: "About | My App"
+}
+```
+
+## 认证和会话
+
+### 创建会话
+
+```tsx
+// lib/session.ts
+import 'server-only'
+import { cookies } from 'next/headers'
+import { SignJWT, jwtVerify } from 'jose'
+
+const secretKey = process.env.SESSION_SECRET!
+const key = new TextEncoder().encode(secretKey)
+
+export async function encrypt(payload: any) {
+  return await new SignJWT(payload)
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('7d')
+    .sign(key)
+}
+
+export async function decrypt(token: string | undefined) {
+  if (!token) return null
+  try {
+    const { payload } = await jwtVerify(token, key)
+    return payload
+  } catch (error) {
+    return null
+  }
+}
+
+export async function createSession(userId: string) {
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+  const session = await encrypt({ userId, expiresAt })
+  const cookieStore = await cookies()
+
+  cookieStore.set('session', session, {
+    httpOnly: true,
+    secure: true,
+    expires: expiresAt,
+    sameSite: 'lax',
+    path: '/',
+  })
+}
+
+export async function deleteSession() {
+  const cookieStore = await cookies()
+  cookieStore.delete('session')
+}
+```
+
+### 验证会话
+
+```tsx
+// lib/dal.ts (Data Access Layer)
+import 'server-only'
+import { cookies } from 'next/headers'
+import { decrypt } from '@/lib/session'
+import { cache } from 'react'
+import { redirect } from 'next/navigation'
+
+export const verifySession = cache(async () => {
+  const cookie = (await cookies()).get('session')?.value
+  const session = await decrypt(cookie)
+
+  if (!session?.userId) {
+    redirect('/login')
+  }
+
+  return { isAuth: true, userId: session.userId }
+})
+
+export async function getUser() {
+  const session = await verifySession()
+  if (!session) return null
+
+  const user = await db.user.findUnique({
+    where: { id: session.userId },
+    select: { id: true, name: true, email: true },
+  })
+
+  return user
+}
+```
+
+## 环境变量
+
+### 使用环境变量
+
+```tsx
+// 服务端环境变量
+const apiKey = process.env.API_KEY
+
+// 客户端环境变量 (需要 NEXT_PUBLIC_ 前缀)
+const publicApiUrl = process.env.NEXT_PUBLIC_API_URL
+```
+
+### 环境变量文件
+
+```bash
+# .env.local (本地开发，不提交到 git)
+DATABASE_URL=postgresql://localhost:5432/mydb
+API_KEY=secret
+
+# .env.development
+NEXT_PUBLIC_API_URL=http://localhost:3000/api
+
+# .env.production
+NEXT_PUBLIC_API_URL=https://api.myapp.com
+```
+
+## 错误处理
+
+### Error Boundary
+
+```tsx
+// app/error.tsx
+'use client'
+
+export default function Error({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string }
+  reset: () => void
+}) {
+  return (
+    <div>
+      <h2>Something went wrong!</h2>
+      <button onClick={() => reset()}>Try again</button>
+    </div>
+  )
+}
+```
+
+### 全局错误处理
+
+```tsx
+// app/global-error.tsx
+'use client'
+
+export default function GlobalError({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string }
+  reset: () => void
+}) {
+  return (
+    <html>
+      <body>
+        <h2>Something went wrong!</h2>
+        <button onClick={() => reset()}>Try again</button>
+      </body>
+    </html>
+  )
+}
+```
+
+### Not Found 页面
+
+```tsx
+// app/not-found.tsx
+import Link from 'next/link'
+
+export default function NotFound() {
+  return (
+    <div>
+      <h2>Not Found</h2>
+      <p>Could not find requested resource</p>
+      <Link href="/">Return Home</Link>
+    </div>
+  )
+}
+```
+
+### 触发 Not Found
+
+```tsx
+import { notFound } from 'next/navigation'
+
+export default async function PostPage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id } = await params
+  const post = await getPost(id)
+
+  if (!post) {
+    notFound()
+  }
+
+  return <article>{post.content}</article>
+}
+```
+
+## 加载状态
+
+### Loading UI
+
+```tsx
+// app/dashboard/loading.tsx
+export default function Loading() {
+  return (
+    <div className="loading-skeleton">
+      <div className="skeleton-header" />
+      <div className="skeleton-content" />
+    </div>
+  )
+}
+```
+
+### Suspense
+
+```tsx
+import { Suspense } from 'react'
+
+async function SlowComponent() {
+  const data = await slowFetch()
+  return <div>{data}</div>
+}
+
+export default function Page() {
+  return (
+    <div>
+      <h1>Dashboard</h1>
+      <Suspense fallback={<div>Loading...</div>}>
+        <SlowComponent />
+      </Suspense>
+    </div>
+  )
+}
+```
+
+## 缓存和重新验证
+
+### 重新验证路径
+
+```tsx
+'use server'
+
+import { revalidatePath } from 'next/cache'
+
+export async function createPost() {
+  // 创建帖子...
+
+  // 重新验证特定路径
+  revalidatePath('/posts')
+
+  // 重新验证特定布局
+  revalidatePath('/posts', 'layout')
+
+  // 重新验证特定页面
+  revalidatePath('/posts', 'page')
+}
+```
+
+### 重新验证标签
+
+```tsx
+// 获取数据时添加标签
+async function getPosts() {
+  const res = await fetch('https://api.example.com/posts', {
+    next: { tags: ['posts'] }
+  })
+  return res.json()
+}
+
+// 重新验证标签
+'use server'
+
+import { revalidateTag } from 'next/cache'
+
+export async function createPost() {
+  // 创建帖子...
+  revalidateTag('posts')
+}
+```
+
+## 部署
+
+### Vercel 部署
+
+```bash
+# 安装 Vercel CLI
+npm i -g vercel
+
+# 部署
+vercel
+```
+
+### Docker 部署
+
+```dockerfile
+# Dockerfile
+FROM node:18-alpine AS base
+
+FROM base AS deps
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+RUN npm run build
+
+FROM base AS runner
+WORKDIR /app
+ENV NODE_ENV production
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+
+EXPOSE 3000
+ENV PORT 3000
+
+CMD ["node", "server.js"]
+```
+
+### 输出配置
+
+```js
+// next.config.js
+module.exports = {
+  output: 'standalone', // Docker 优化
+  // output: 'export', // 静态导出
+}
+```
+
+## 配置
+
+### next.config.js
+
+```js
+// next.config.js
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  // 严格模式
+  reactStrictMode: true,
+
+  // 图片配置
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'example.com',
+      },
+    ],
+  },
+
+  // 重定向
+  async redirects() {
+    return [
+      {
+        source: '/old-blog/:slug',
+        destination: '/blog/:slug',
+        permanent: true,
+      },
+    ]
+  },
+
+  // 重写
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: 'https://api.example.com/:path*',
+      },
+    ]
+  },
+
+  // 自定义 headers
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+        ],
+      },
+    ]
+  },
+
+  // 环境变量
+  env: {
+    CUSTOM_VAR: 'value',
+  },
+
+  // 实验性功能
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '2mb',
+    },
+  },
+}
+
+module.exports = nextConfig
+```
+
+## Pages Router (传统)
+
+### getStaticProps (SSG)
+
+```tsx
+// pages/posts/index.tsx
+import type { GetStaticProps, InferGetStaticPropsType } from 'next'
+
+type Post = {
+  id: string
+  title: string
+}
+
+export const getStaticProps: GetStaticProps<{ posts: Post[] }> = async () => {
+  const res = await fetch('https://api.example.com/posts')
+  const posts = await res.json()
+
+  return {
+    props: { posts },
+    revalidate: 60, // ISR: 60秒后重新生成
+  }
+}
+
+export default function PostsPage({
+  posts,
+}: InferGetStaticPropsType<typeof getStaticProps>) {
+  return (
+    <ul>
+      {posts.map((post) => (
+        <li key={post.id}>{post.title}</li>
+      ))}
+    </ul>
+  )
+}
+```
+
+### getStaticPaths
+
+```tsx
+// pages/posts/[id].tsx
+import type { GetStaticProps, GetStaticPaths } from 'next'
+
+export const getStaticPaths: GetStaticPaths = async () => {
+  const res = await fetch('https://api.example.com/posts')
+  const posts = await res.json()
+
+  const paths = posts.map((post: any) => ({
+    params: { id: post.id },
+  }))
+
+  return { paths, fallback: 'blocking' }
+}
+
+export const getStaticProps: GetStaticProps = async ({ params }) => {
+  const res = await fetch(`https://api.example.com/posts/${params?.id}`)
+  const post = await res.json()
+
+  return {
+    props: { post },
+    revalidate: 60,
+  }
+}
+```
+
+### getServerSideProps (SSR)
+
+```tsx
+// pages/dashboard.tsx
+import type { GetServerSideProps } from 'next'
+
+export const getServerSideProps: GetServerSideProps = async (context) => {
+  const { req, res, query, params } = context
+
+  // 访问 cookies
+  const token = req.cookies.token
+
+  // 获取数据
+  const data = await fetch('https://api.example.com/dashboard', {
+    headers: { Authorization: `Bearer ${token}` },
+  }).then(r => r.json())
+
+  return {
+    props: { data },
+  }
+}
+```
+
+### API Routes (Pages Router)
+
+```tsx
+// pages/api/users/[id].ts
+import type { NextApiRequest, NextApiResponse } from 'next'
+
+type User = {
+  id: string
+  name: string
+}
+
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse<User | { error: string }>
+) {
+  const { id } = req.query
+
+  if (req.method === 'GET') {
+    const user = await getUser(id as string)
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' })
+    }
+    return res.status(200).json(user)
+  }
+
+  if (req.method === 'PUT') {
+    const user = await updateUser(id as string, req.body)
+    return res.status(200).json(user)
+  }
+
+  res.setHeader('Allow', ['GET', 'PUT'])
+  res.status(405).json({ error: `Method ${req.method} Not Allowed` })
+}
+```
+
+## 常用 Hooks
+
+### usePathname
+
+```tsx
+'use client'
+
+import { usePathname } from 'next/navigation'
+
+export function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
+  const pathname = usePathname()
+  const isActive = pathname === href
+
+  return (
+    <a href={href} className={isActive ? 'active' : ''}>
+      {children}
+    </a>
+  )
+}
+```
+
+### useSearchParams
+
+```tsx
+'use client'
+
+import { useSearchParams } from 'next/navigation'
+
+export function SearchResults() {
+  const searchParams = useSearchParams()
+  const query = searchParams.get('q')
+  const page = searchParams.get('page') || '1'
+
+  return <div>Search: {query}, Page: {page}</div>
+}
+```
+
+### useParams
+
+```tsx
+'use client'
+
+import { useParams } from 'next/navigation'
+
+export function PostHeader() {
+  const params = useParams<{ id: string }>()
+  return <h1>Post ID: {params.id}</h1>
+}
+```
+
+## TypeScript 支持
+
+### 类型定义
+
+```tsx
+// 页面 Props
+interface PageProps {
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}
+
+// Layout Props
+interface LayoutProps {
+  children: React.ReactNode
+  params: Promise<{ id: string }>
+}
+
+// Route Handler
+import { type NextRequest } from 'next/server'
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  // ...
+}
+
+// Server Action
+export async function createPost(
+  prevState: { message: string } | null,
+  formData: FormData
+): Promise<{ message: string }> {
+  // ...
+}
+```
+
+## 性能优化
+
+### 动态导入
+
+```tsx
+import dynamic from 'next/dynamic'
+
+// 延迟加载组件
+const DynamicChart = dynamic(() => import('./Chart'), {
+  loading: () => <p>Loading chart...</p>,
+  ssr: false, // 禁用服务端渲染
+})
+
+export default function Page() {
+  return <DynamicChart />
+}
+```
+
+### 字体优化
+
+```tsx
+// app/layout.tsx
+import { Inter } from 'next/font/google'
+
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+})
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en" className={inter.className}>
+      <body>{children}</body>
+    </html>
+  )
+}
+```
+
+### 脚本优化
+
+```tsx
+import Script from 'next/script'
+
+export default function Page() {
+  return (
+    <>
+      {/* 页面交互后加载 */}
+      <Script
+        src="https://example.com/script.js"
+        strategy="lazyOnload"
+      />
+
+      {/* 页面加载后立即加载 */}
+      <Script
+        src="https://example.com/analytics.js"
+        strategy="afterInteractive"
+      />
+
+      {/* 页面加载前加载 */}
+      <Script
+        src="https://example.com/critical.js"
+        strategy="beforeInteractive"
+      />
+    </>
+  )
+}
+```
+
+## API 参考
+
+### next/navigation
+
+```tsx
+import {
+  useRouter,      // 客户端导航
+  usePathname,    // 当前路径
+  useSearchParams,// 查询参数
+  useParams,      // 路由参数
+  redirect,       // 服务端重定向
+  notFound,       // 触发 404
+  useSelectedLayoutSegment,
+  useSelectedLayoutSegments,
+} from 'next/navigation'
+```
+
+### next/headers
+
+```tsx
+import {
+  cookies,  // 读写 cookies
+  headers,  // 读取 headers
+  draftMode, // 草稿模式
+} from 'next/headers'
+```
+
+### next/cache
+
+```tsx
+import {
+  revalidatePath,  // 重新验证路径
+  revalidateTag,   // 重新验证标签
+  unstable_cache,  // 缓存函数
+} from 'next/cache'
+```
+
+### 路由段配置
+
+```tsx
+// 动态渲染配置
+export const dynamic = 'auto' | 'force-dynamic' | 'error' | 'force-static'
+
+// 重新验证时间
+export const revalidate = false | 0 | number
+
+// 运行时
+export const runtime = 'nodejs' | 'edge'
+
+// 首选区域
+export const preferredRegion = 'auto' | 'global' | 'home' | string | string[]
+
+// 最大持续时间
+export const maxDuration = number
+```
+
+## 常见问题
+
+### Hydration 错误
+
+```tsx
+// 问题：服务端和客户端渲染不一致
+// 解决：使用 useEffect 或 suppressHydrationWarning
+
+'use client'
+
+import { useState, useEffect } from 'react'
+
+export function ClientOnly({ children }: { children: React.ReactNode }) {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) return null
+  return <>{children}</>
+}
+```
+
+### 环境变量未定义
+
+```tsx
+// 确保使用正确的前缀
+// 服务端: process.env.SECRET_KEY
+// 客户端: process.env.NEXT_PUBLIC_API_URL
+
+// 类型安全
+declare global {
+  namespace NodeJS {
+    interface ProcessEnv {
+      DATABASE_URL: string
+      NEXT_PUBLIC_API_URL: string
+    }
+  }
+}
+```
+
+### 动态路由类型
+
+```tsx
+// 正确的类型定义
+interface PageProps {
+  params: Promise<{ slug: string }>
+}
+
+export default async function Page({ params }: PageProps) {
+  const { slug } = await params
+  // ...
+}
+```
