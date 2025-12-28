@@ -1,0 +1,2848 @@
+---
+url: 'https://goframe.org/docs'
+description: GoFrame 框架完整开发手册 - 模块化、高性能的 Go 语言企业级开发框架文档，类似 PHP Laravel 或 Java Spring Boot。
+---
+# GoFrame 开发手册
+
+GoFrame 是一个模块化、高性能、企业级的 Go 应用开发框架，提供了丰富的基础组件和开发工具。
+
+## 框架特性
+
+- **模块化设计**：低耦合的模块设计，可独立使用各组件
+- **高性能**：优化的底层实现，适合高并发场景
+- **企业级**：完善的工程实践、规范和工具支持
+- **全链路追踪**：内置 OpenTelemetry 支持
+- **丰富组件**：HTTP Server、ORM、缓存、日志、配置等 60+ 组件
+
+## 版本要求
+
+- Go 版本 >= 1.20
+- 当前最新版本：2.9.x
+
+## 快速安装
+
+```bash
+# 初始化模块
+go mod init your-project
+
+# 安装框架
+go get -u -v github.com/gogf/gf/v2
+```
+
+## 核心模块
+
+| 模块分类 | 主要组件 |
+|---------|---------|
+| Web服务 | ghttp (HTTP Server/Client) |
+| 数据库 | gdb (ORM)、gredis (Redis) |
+| 配置管理 | gcfg |
+| 日志管理 | glog |
+| 缓存管理 | gcache |
+| 数据校验 | gvalid |
+| 类型转换 | gconv |
+| 错误处理 | gerror |
+| 模板引擎 | gview |
+| 命令行 | gcmd |
+| 国际化 | gi18n |
+
+---
+
+---
+url: 'https://goframe.org/docs/design'
+description: GoFrame 框架设计理念 - 理解框架设计思想是高效使用框架的基础。
+---
+# 框架设计理念
+
+## 核心设计原则
+
+GoFrame 的设计思想是框架的灵魂，理解设计理念有助于更好地使用框架。
+
+### 模块化设计
+
+框架采用模块化设计，遵循三个核心复用原则：
+
+1. **REP（复用/发布等价原则）**：代码模块化粒度应与分发单元一致
+2. **CCP（共同闭包原则）**：因相同原因修改的类应在同一模块，优先可维护性
+3. **CRP（共同复用原则）**：不强制模块依赖不需要的东西
+
+### 模块聚合策略
+
+GoFrame 将核心通用模块聚合在一个框架发布中：
+- 简化依赖管理（一个版本而非多个）
+- 降低开发者认知负担
+- 保持项目间模块版本一致
+- 仅包含通用核心模块，无业务特定逻辑
+
+### 统一框架
+
+- 统一技术栈
+- 统一开发规范
+- 统一组件标准
+
+---
+
+---
+url: 'https://goframe.org/docs/design/project'
+description: GoFrame 工程目录设计 - 推荐的项目目录结构和分层设计。
+---
+# 工程目录设计
+
+## 目录结构
+
+GoFrame 推荐的项目目录结构采用**通用设计**，可根据项目复杂度灵活增减。
+
+```
+├── api/                  # 对外接口定义
+│   └── v1/              # 版本目录
+├── internal/            # 内部逻辑（不对外暴露）
+│   ├── cmd/             # 命令入口
+│   ├── controller/      # 控制器层
+│   ├── logic/           # 业务逻辑层
+│   ├── service/         # 服务接口层
+│   ├── dao/             # 数据访问层
+│   └── model/           # 数据模型
+│       ├── do/          # 数据操作对象
+│       └── entity/      # 数据实体
+├── manifest/            # 交付清单
+│   ├── config/          # 配置文件
+│   ├── docker/          # Docker 配置
+│   └── deploy/          # 部署配置
+├── resource/            # 静态资源
+├── utility/             # 工具函数
+├── hack/                # 工具脚本
+│   └── config.yaml      # CLI 工具配置
+├── main.go              # 入口文件
+└── go.mod               # 模块定义
+```
+
+## 分层设计
+
+### 三层架构
+
+```
+┌─────────────────────────────────────┐
+│        API/Controller 层            │  ← 请求响应处理
+├─────────────────────────────────────┤
+│        Service/Logic 层             │  ← 业务逻辑
+├─────────────────────────────────────┤
+│        DAO/Model 层                 │  ← 数据访问
+└─────────────────────────────────────┘
+```
+
+### 层职责说明
+
+| 层 | 目录 | 职责 |
+|---|------|-----|
+| Controller | internal/controller | 接收请求、参数校验、调用 Service |
+| Service | internal/service | 定义业务接口 |
+| Logic | internal/logic | 实现业务逻辑 |
+| DAO | internal/dao | 数据库操作封装 |
+| Model | internal/model | 数据结构定义 |
+
+## 灵活性说明
+
+- 简单项目可删除不需要的目录（如 i18n、template、protobuf）
+- 验证/演示项目可直接在 controller 实现逻辑
+- 开发者可根据实际需求灵活选择和组装
+
+---
+
+---
+url: 'https://goframe.org/quick/install'
+description: GoFrame 框架安装指南 - 下载和安装 GoFrame 框架。
+---
+# 框架安装
+
+## 环境要求
+
+- Go 版本 >= 1.20
+
+## 安装步骤
+
+### 1. 初始化 Go 模块
+
+```bash
+go mod init your-project-name
+```
+
+### 2. 下载框架
+
+```bash
+go get -u -v github.com/gogf/gf/v2
+```
+
+### 3. 验证安装
+
+```go
+package main
+
+import (
+    "fmt"
+    "github.com/gogf/gf/v2"
+)
+
+func main() {
+    fmt.Println("Hello GoFrame:", gf.VERSION)
+}
+```
+
+运行 `go run main.go` 应输出框架版本号。
+
+---
+
+---
+url: 'https://goframe.org/quick/hello-world'
+description: GoFrame Hello World 示例 - 创建第一个 GoFrame Web 应用。
+---
+# Hello World
+
+## 基本示例
+
+```go
+package main
+
+import (
+    "github.com/gogf/gf/v2/frame/g"
+    "github.com/gogf/gf/v2/net/ghttp"
+)
+
+func main() {
+    s := g.Server()
+    s.BindHandler("/", func(r *ghttp.Request) {
+        r.Response.Write("Hello, GoFrame!")
+    })
+    s.SetPort(8199)
+    s.Run()
+}
+```
+
+## 运行
+
+```bash
+go mod tidy
+go run main.go
+```
+
+访问 http://127.0.0.1:8199 即可看到 "Hello, GoFrame!"
+
+## 关键概念
+
+- `g.Server()` 返回单例 Server 对象
+- `BindHandler` 绑定路由处理函数
+- `ghttp.Request` 包含请求上下文信息
+- `r.Response.Write()` 写入响应内容
+
+---
+
+---
+url: 'https://goframe.org/docs/web'
+description: GoFrame Web 服务开发 - HTTP Server 完整开发指南。
+---
+# Web 服务开发
+
+GoFrame 的 `ghttp` 模块提供强大的 HTTP Server 功能。
+
+## 核心特性
+
+- 多端口监听
+- 域名绑定
+- 多实例运行
+- 平滑重启
+- 路由管理
+- 中间件支持
+- Session/Cookie 管理
+- 文件上传下载
+- WebSocket 支持
+
+## 创建 Server
+
+```go
+package main
+
+import (
+    "github.com/gogf/gf/v2/frame/g"
+    "github.com/gogf/gf/v2/net/ghttp"
+)
+
+func main() {
+    s := g.Server()
+    s.Group("/api", func(group *ghttp.RouterGroup) {
+        group.Middleware(ghttp.MiddlewareHandlerResponse)
+        group.GET("/user", GetUser)
+        group.POST("/user", CreateUser)
+    })
+    s.SetPort(8000)
+    s.Run()
+}
+```
+
+## 配置文件
+
+`manifest/config/config.yaml`:
+
+```yaml
+server:
+    address: ":8000"
+    serverRoot: "/var/www"
+    indexFiles: ["index.html"]
+    accessLogEnabled: true
+    errorLogEnabled: true
+    pprofEnabled: false
+    logPath: "/var/log/server"
+    sessionIdName: "SessionId"
+    sessionMaxAge: "24h"
+    dumpRouterMap: true
+```
+
+---
+
+---
+url: 'https://goframe.org/docs/web/router'
+description: GoFrame 路由管理 - HTTP 路由注册和管理。
+---
+# 路由管理
+
+路由管理是 HTTP Web Server 开发的基础。
+
+## 路由模式
+
+GoFrame 支持多种路由匹配模式：
+
+| 模式 | 示例 | 说明 |
+|-----|-----|-----|
+| 精确匹配 | `/user` | 完全匹配路径 |
+| 命名匹配 | `/user/:id` | 匹配并捕获参数 |
+| 模糊匹配 | `/api/*` | 匹配任意后缀 |
+| 字段匹配 | `/user/{id}` | 字段参数匹配 |
+
+## 路由注册方式
+
+### 函数注册
+
+```go
+s := g.Server()
+s.BindHandler("/hello", func(r *ghttp.Request) {
+    r.Response.Write("Hello World")
+})
+```
+
+### 对象方法注册
+
+```go
+type Controller struct{}
+
+func (c *Controller) Hello(r *ghttp.Request) {
+    r.Response.Write("Hello World")
+}
+
+func main() {
+    s := g.Server()
+    c := &Controller{}
+    s.BindHandler("/hello", c.Hello)
+    s.Run()
+}
+```
+
+### 分组路由
+
+```go
+s.Group("/api/v1", func(group *ghttp.RouterGroup) {
+    group.Middleware(AuthMiddleware)
+    group.GET("/users", ListUsers)
+    group.POST("/users", CreateUser)
+    group.GET("/users/:id", GetUser)
+    group.PUT("/users/:id", UpdateUser)
+    group.DELETE("/users/:id", DeleteUser)
+})
+```
+
+### 规范路由（推荐）
+
+```go
+// 定义请求/响应结构
+type GetUserReq struct {
+    g.Meta `path:"/user/:id" method:"get" tags:"用户" summary:"获取用户"`
+    Id     int `v:"required"`
+}
+
+type GetUserRes struct {
+    Id   int    `json:"id"`
+    Name string `json:"name"`
+}
+
+// 控制器方法
+func (c *Controller) GetUser(ctx context.Context, req *GetUserReq) (res *GetUserRes, err error) {
+    // 业务逻辑
+    return &GetUserRes{Id: req.Id, Name: "John"}, nil
+}
+```
+
+---
+
+---
+url: 'https://goframe.org/docs/web/request'
+description: GoFrame 请求输入 - HTTP 请求参数获取和处理。
+---
+# 请求输入
+
+`ghttp.Request` 对象处理所有请求数据。
+
+## 参数获取方法
+
+| 方法 | 说明 |
+|-----|-----|
+| `Get()` | 简化参数获取 |
+| `GetQuery()` | URL 查询参数 |
+| `GetForm()` | 表单参数 |
+| `GetRequest()` | 所有客户端参数 |
+| `GetBody()` | 原始请求体 |
+| `GetBodyString()` | 请求体字符串 |
+| `GetJson()` | 自动解析 JSON |
+
+## 参数优先级
+
+`Get` 和 `GetRequest` 方法优先级：
+```
+Router < Query < Body < Form < Custom
+```
+
+## 示例
+
+```go
+func Handler(r *ghttp.Request) {
+    // 获取单个参数
+    name := r.Get("name").String()
+    age := r.Get("age").Int()
+
+    // 获取查询参数
+    page := r.GetQuery("page", 1).Int()
+
+    // 获取表单参数
+    email := r.GetForm("email").String()
+
+    // 获取 JSON 数据
+    json := r.GetJson()
+
+    // 绑定到结构体
+    var user User
+    r.Parse(&user)
+}
+```
+
+## 结构体绑定
+
+```go
+type CreateUserReq struct {
+    g.Meta `path:"/user" method:"post"`
+    Name   string `v:"required" json:"name"`
+    Email  string `v:"required|email" json:"email"`
+    Age    int    `v:"min:0|max:150" json:"age"`
+}
+
+func (c *Controller) CreateUser(ctx context.Context, req *CreateUserReq) (*CreateUserRes, error) {
+    // req 已自动绑定和校验
+    return nil, nil
+}
+```
+
+## 注意事项
+
+- 参数名**区分大小写**
+- `name` 和 `Name` 是不同的参数
+
+---
+
+---
+url: 'https://goframe.org/docs/web/response'
+description: GoFrame 响应输出 - HTTP 响应数据返回。
+---
+# 响应输出
+
+`ghttp.Response` 实现了 `http.ResponseWriter` 接口，使用缓冲机制。
+
+## 主要方法
+
+| 方法 | 说明 |
+|-----|-----|
+| `Write()` | 追加数据到缓冲 |
+| `WriteExit()` | 写入后退出 |
+| `WriteOver()` | 覆盖缓冲内容 |
+| `WriteStatus()` | 设置状态码 |
+| `WriteJson()` | JSON 响应 |
+| `WriteXml()` | XML 响应 |
+| `WriteTpl()` | 模板渲染 |
+
+## 示例
+
+```go
+// 普通文本
+r.Response.Write("Hello World")
+
+// JSON 响应
+r.Response.WriteJson(g.Map{
+    "code": 0,
+    "msg":  "success",
+    "data": user,
+})
+
+// 设置状态码
+r.Response.WriteStatus(404, "Not Found")
+
+// 重定向
+r.Response.RedirectTo("/login")
+
+// 文件下载
+r.Response.ServeFileDownload("/path/to/file.pdf")
+```
+
+## 统一响应格式
+
+推荐使用中间件统一响应格式：
+
+```go
+s.Use(ghttp.MiddlewareHandlerResponse)
+```
+
+响应格式：
+```json
+{
+    "code": 0,
+    "message": "success",
+    "data": {}
+}
+```
+
+---
+
+---
+url: 'https://goframe.org/docs/web/middleware'
+description: GoFrame 中间件 - 请求拦截和响应处理。
+---
+# 中间件
+
+中间件是一种拦截器设计，可在请求处理前后执行自定义逻辑。
+
+## 中间件类型
+
+- **前置中间件**：在路由处理函数之前执行
+- **后置中间件**：在路由处理函数之后执行
+
+## 执行流程
+
+```go
+func Middleware(r *ghttp.Request) {
+    // 前置逻辑
+    r.Middleware.Next()  // 继续执行下一个处理
+    // 后置逻辑
+}
+```
+
+## 示例
+
+### 认证中间件
+
+```go
+func AuthMiddleware(r *ghttp.Request) {
+    token := r.GetHeader("Authorization")
+    if token == "" {
+        r.Response.WriteJsonExit(g.Map{
+            "code": 401,
+            "msg":  "未授权",
+        })
+        return
+    }
+    // 验证 token...
+    r.Middleware.Next()
+}
+```
+
+### 日志中间件
+
+```go
+func LogMiddleware(r *ghttp.Request) {
+    start := time.Now()
+    r.Middleware.Next()
+    g.Log().Infof(r.Context(),
+        "%s %s %d %v",
+        r.Method, r.URL.Path,
+        r.Response.Status,
+        time.Since(start),
+    )
+}
+```
+
+### 错误处理中间件
+
+```go
+func ErrorHandler(r *ghttp.Request) {
+    r.Middleware.Next()
+    if err := r.GetError(); err != nil {
+        r.Response.ClearBuffer()
+        r.Response.WriteJson(g.Map{
+            "code": 500,
+            "msg":  err.Error(),
+        })
+    }
+}
+```
+
+## 注册中间件
+
+```go
+// 全局中间件
+s.Use(LogMiddleware)
+
+// 分组中间件
+s.Group("/api", func(group *ghttp.RouterGroup) {
+    group.Middleware(AuthMiddleware)
+    group.Bind(&Controller{})
+})
+```
+
+---
+
+---
+url: 'https://goframe.org/docs/web/session'
+description: GoFrame Session 和 Cookie 管理。
+---
+# Session & Cookie
+
+## Session 管理
+
+`gsession` 组件提供完整的 Session 功能。
+
+### 特性
+
+- 默认 24 小时过期
+- 默认通过 Cookie 传输 SessionId
+- 线程安全
+- 懒初始化（使用时才初始化）
+
+### 存储方式
+
+| 类型 | 分布式 | 持久化 | 效率 |
+|-----|-------|-------|-----|
+| File | 否 | 是 | 中 |
+| Memory | 否 | 否 | 高 |
+| Redis (KV) | 是 | 是 | 中 |
+| Redis (Hash) | 是 | 是 | 中 |
+
+### 使用示例
+
+```go
+func Handler(r *ghttp.Request) {
+    session := r.Session
+
+    // 设置值
+    session.Set("user_id", 123)
+    session.Set("username", "john")
+
+    // 获取值
+    userId := session.MustGet("user_id").Int()
+
+    // 删除值
+    session.Remove("temp_data")
+
+    // 清空 Session
+    session.RemoveAll()
+}
+```
+
+### 配置
+
+```yaml
+server:
+    sessionIdName: "MySessionId"
+    sessionPath: "/tmp/sessions"
+    sessionMaxAge: "24h"
+    sessionStorage: "redis"  # file/memory/redis
+```
+
+---
+
+---
+url: 'https://goframe.org/docs/web/http-client'
+description: GoFrame HTTPClient - HTTP 客户端请求。
+---
+# HTTPClient
+
+`gclient` 组件提供 HTTP 客户端功能。
+
+## 创建客户端
+
+```go
+// 方式一：包方法
+client := gclient.New()
+
+// 方式二：便捷方法（推荐）
+client := g.Client()
+```
+
+## 基本请求
+
+```go
+// GET 请求
+response, err := g.Client().Get(ctx, "https://api.example.com/users")
+
+// POST 请求
+response, err := g.Client().Post(ctx, "https://api.example.com/users", g.Map{
+    "name": "john",
+    "age":  30,
+})
+
+// 带 Header
+response, err := g.Client().
+    Header("Authorization", "Bearer token").
+    ContentJson().
+    Post(ctx, url, data)
+```
+
+## 链式配置
+
+```go
+client := g.Client()
+response, err := client.
+    Timeout(10 * time.Second).    // 超时
+    Header("X-Custom", "value").  // 自定义头
+    Cookie("session", "xxx").     // Cookie
+    ContentJson().                // JSON 内容类型
+    BasicAuth("user", "pass").    // 基础认证
+    Retry(3, 1*time.Second).      // 重试
+    Proxy("http://proxy:8080").   // 代理
+    Post(ctx, url, data)
+```
+
+## 响应处理
+
+```go
+response, err := g.Client().Get(ctx, url)
+if err != nil {
+    return err
+}
+defer response.Close()  // 必须关闭！
+
+// 读取响应
+body := response.ReadAllString()
+// 或
+var result map[string]interface{}
+response.Scan(&result)
+```
+
+## 重要提示
+
+- 响应对象必须调用 `Close()` 方法
+- 默认禁用 KeepAlive
+- 默认跳过 TLS 证书验证
+
+---
+
+---
+url: 'https://goframe.org/docs/core/gdb'
+description: GoFrame ORM 数据库操作 - 关系型数据库 ORM 组件。
+---
+# 数据库 ORM
+
+`gdb` 是 GoFrame 的 ORM 组件，用于关系型数据库操作。
+
+## 核心特性
+
+- 预处理参数防 SQL 注入
+- 自动嵌套事务支持
+- 支持多种数据库驱动
+- 链式操作和原生 SQL
+- OpenTelemetry 可观测性
+- 自动 Map/Struct 结果扫描
+- DAO/Model 代码生成
+
+## 获取数据库对象
+
+```go
+// 方式一：单例（推荐）
+db := g.DB()
+
+// 方式二：指定分组
+db := g.DB("user")
+
+// 方式三：创建新实例
+db, err := gdb.New(config)
+```
+
+## 配置文件
+
+`manifest/config/config.yaml`:
+
+```yaml
+database:
+    default:
+        type: "mysql"
+        link: "root:password@tcp(127.0.0.1:3306)/test"
+        debug: true
+
+    user:
+        type: "mysql"
+        link: "root:password@tcp(127.0.0.1:3306)/user"
+```
+
+## 基本 CRUD
+
+```go
+ctx := gctx.New()
+
+// 插入
+result, err := g.Model("user").Ctx(ctx).Data(g.Map{
+    "name": "john",
+    "age":  30,
+}).Insert()
+
+// 查询
+user, err := g.Model("user").Ctx(ctx).Where("id", 1).One()
+users, err := g.Model("user").Ctx(ctx).Where("age>?", 18).All()
+
+// 更新
+result, err := g.Model("user").Ctx(ctx).
+    Data(g.Map{"age": 31}).
+    Where("id", 1).
+    Update()
+
+// 删除
+result, err := g.Model("user").Ctx(ctx).Where("id", 1).Delete()
+```
+
+## 链式操作
+
+```go
+// 复杂查询
+users, err := g.Model("user").Ctx(ctx).
+    Fields("id, name, age").
+    Where("status", 1).
+    WhereOr("vip", 1).
+    Order("created_at DESC").
+    Limit(10).
+    Offset(0).
+    All()
+
+// 聚合查询
+count, err := g.Model("user").Ctx(ctx).Where("status", 1).Count()
+```
+
+## Raw SQL
+
+```go
+// 使用 gdb.Raw 嵌入原生 SQL
+g.Model("user").Ctx(ctx).Data(g.Map{
+    "login_count": gdb.Raw("login_count+1"),
+    "update_time": gdb.Raw("now()"),
+}).Where("id", 1).Update()
+```
+
+## 重要提示
+
+- 连接对象无需手动关闭，连接池自动管理
+- 推荐使用 `Ctx()` 传递上下文
+
+---
+
+---
+url: 'https://goframe.org/docs/core/gdb-transaction'
+description: GoFrame ORM 事务处理。
+---
+# 事务处理
+
+## 两种方式
+
+### 1. 常规方式
+
+```go
+tx, err := g.DB().Begin(ctx)
+if err != nil {
+    return err
+}
+defer func() {
+    if err != nil {
+        tx.Rollback()
+    }
+}()
+
+_, err = tx.Model("user").Insert(g.Map{"name": "john"})
+if err != nil {
+    return err
+}
+
+_, err = tx.Model("order").Insert(g.Map{"user_id": 1})
+if err != nil {
+    return err
+}
+
+return tx.Commit()
+```
+
+### 2. 闭包方式（推荐）
+
+```go
+err := g.DB().Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
+    _, err := tx.Model("user").Ctx(ctx).Insert(g.Map{"name": "john"})
+    if err != nil {
+        return err
+    }
+
+    _, err = tx.Model("order").Ctx(ctx).Insert(g.Map{"user_id": 1})
+    if err != nil {
+        return err  // 返回错误自动回滚
+    }
+
+    return nil  // 返回 nil 自动提交
+})
+```
+
+## 嵌套事务
+
+GoFrame 自动支持嵌套事务：
+
+```go
+g.DB().Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
+    // 外层事务
+    tx.Model("user").Ctx(ctx).Insert(...)
+
+    // 嵌套事务（自动使用 SavePoint）
+    tx.Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
+        tx.Model("order").Ctx(ctx).Insert(...)
+        return nil
+    })
+
+    return nil
+})
+```
+
+---
+
+---
+url: 'https://goframe.org/docs/core/gdb-cache'
+description: GoFrame ORM 查询缓存。
+---
+# 查询缓存
+
+## 启用缓存
+
+```go
+// 缓存查询结果 1 小时
+user, err := g.Model("user").Ctx(ctx).Cache(gdb.CacheOption{
+    Duration: time.Hour,
+    Name:     "user-cache-1",
+    Force:    false,
+}).Where("id", 1).One()
+```
+
+## 清除缓存
+
+```go
+// 更新时清除缓存
+_, err := g.Model("user").Ctx(ctx).Cache(gdb.CacheOption{
+    Duration: -1,           // -1 表示清除
+    Name:     "user-cache-1",
+}).Data(g.Map{"name": "new"}).Where("id", 1).Update()
+```
+
+## Redis 缓存适配器
+
+```go
+// 设置 Redis 作为缓存后端
+redisCache := gcache.NewAdapterRedis(g.Redis())
+g.DB().GetCache().SetAdapter(redisCache)
+```
+
+---
+
+---
+url: 'https://goframe.org/docs/core/gcfg'
+description: GoFrame 配置管理 - 多格式配置文件支持。
+---
+# 配置管理
+
+`gcfg` 组件实现配置管理，所有方法并发安全。
+
+## 特性
+
+- 接口化设计，可扩展
+- 支持多种格式：yaml/toml/json/xml/ini/properties
+- 环境变量和命令行参数回退
+- 资源管理集成
+- 自动热重载
+- 层级访问
+- 单例管理
+
+## 获取配置
+
+```go
+// 单例方式（推荐）
+cfg := g.Cfg()
+
+// 读取配置
+value, err := cfg.Get(ctx, "database.default.host")
+host := value.String()
+
+// 带默认值
+port := cfg.MustGet(ctx, "database.default.port", 3306).Int()
+```
+
+## 配置文件示例
+
+`manifest/config/config.yaml`:
+
+```yaml
+# 服务器配置
+server:
+    address: ":8000"
+    serverRoot: "/var/www"
+
+# 数据库配置
+database:
+    default:
+        type: "mysql"
+        link: "root:password@tcp(127.0.0.1:3306)/test"
+        debug: true
+        maxOpen: 100
+        maxIdle: 10
+
+# Redis 配置
+redis:
+    default:
+        address: "127.0.0.1:6379"
+        db: 0
+
+# 日志配置
+logger:
+    path: "/var/log/app"
+    level: "all"
+    stdout: true
+```
+
+## 设置配置文件
+
+```go
+// 设置默认配置文件
+adapter := g.Cfg().GetAdapter().(*gcfg.AdapterFile)
+adapter.SetFileName("custom.yaml")
+```
+
+---
+
+---
+url: 'https://goframe.org/docs/core/glog'
+description: GoFrame 日志组件 - 高性能日志管理。
+---
+# 日志组件
+
+`glog` 是高性能日志模块，支持文件输出、日志级别、调用跟踪等功能。
+
+## 日志级别
+
+| 级别 | 方法 | 说明 |
+|-----|-----|-----|
+| DEBUG | `Debug()` | 调试信息 |
+| INFO | `Info()` | 一般信息 |
+| NOTICE | `Notice()` | 重要信息 |
+| WARNING | `Warning()` | 警告信息 |
+| ERROR | `Error()` | 错误信息（含堆栈）|
+| CRITICAL | `Critical()` | 严重错误 |
+| PANIC | `Panic()` | 恐慌（会 panic）|
+| FATAL | `Fatal()` | 致命（会退出）|
+
+## 基本使用
+
+```go
+ctx := gctx.New()
+
+// 使用单例（推荐）
+g.Log().Info(ctx, "This is info message")
+g.Log().Error(ctx, "This is error message")
+g.Log().Debugf(ctx, "User %s logged in", username)
+
+// 使用包方法
+glog.Info(ctx, "info message")
+```
+
+## 配置
+
+```yaml
+logger:
+    path: "/var/log/app"
+    file: "{Y-m-d}.log"
+    level: "all"
+    stdout: true
+    rotateSize: "100M"
+    rotateBackupLimit: 10
+    rotateBackupExpire: "7d"
+```
+
+## 堆栈打印
+
+```go
+// Error 级别自动打印堆栈
+g.Log().Error(ctx, "Something went wrong!")
+
+// 打印 gerror 堆栈
+err := gerror.New("database error")
+g.Log().Errorf(ctx, "%+v", err)
+```
+
+## 控制调试输出
+
+```go
+// 关闭调试日志
+g.Log().SetDebug(false)
+```
+
+---
+
+---
+url: 'https://goframe.org/docs/core/gcache'
+description: GoFrame 缓存管理 - 统一缓存接口。
+---
+# 缓存管理
+
+`gcache` 提供统一的缓存管理接口。
+
+## 特性
+
+- 接口化设计，可自定义适配器
+- 默认高速内存缓存
+- 支持 Redis 适配器
+- `interface{}` 类型键值
+
+## 过期时间规则
+
+| duration 值 | 行为 |
+|------------|-----|
+| `= 0` | 永不过期 |
+| `< 0` | 立即过期 |
+| `> 0` | 指定时间后过期 |
+
+## 基本使用
+
+```go
+ctx := gctx.New()
+cache := gcache.New()
+
+// 设置缓存
+cache.Set(ctx, "key", "value", time.Hour)
+
+// 获取缓存
+value, _ := cache.Get(ctx, "key")
+fmt.Println(value.String())
+
+// 检查是否存在
+exists, _ := cache.Contains(ctx, "key")
+
+// 删除缓存
+cache.Remove(ctx, "key")
+
+// 获取大小
+size, _ := cache.Size(ctx)
+```
+
+## GetOrSetFunc
+
+```go
+// 缓存不存在时执行函数获取值
+value, _ := gcache.GetOrSetFunc(ctx, "key", func(ctx context.Context) (interface{}, error) {
+    // 从数据库获取
+    return db.GetUser(id)
+}, time.Hour)
+```
+
+## GetOrSetFuncLock
+
+```go
+// 并发安全，函数只执行一次
+value, _ := gcache.GetOrSetFuncLock(ctx, "key", func(ctx context.Context) (interface{}, error) {
+    // 高并发下只执行一次
+    return expensiveOperation()
+}, time.Hour)
+```
+
+## Redis 适配器
+
+```go
+// 创建 Redis 客户端
+redis, _ := gredis.New(&gredis.Config{
+    Address: "127.0.0.1:6379",
+    Db:      0,
+})
+
+// 设置适配器
+cache := gcache.New()
+cache.SetAdapter(gcache.NewAdapterRedis(redis))
+```
+
+---
+
+---
+url: 'https://goframe.org/docs/core/gvalid'
+description: GoFrame 数据校验 - 强大的数据验证组件。
+---
+# 数据校验
+
+`gvalid` 提供强大、便捷、可扩展的数据校验功能。
+
+## 特性
+
+- 50+ 内置校验规则
+- Server 层自动校验
+- 支持结构体校验
+- 自定义错误消息
+- 递归校验
+- 自定义规则注册
+- I18n 国际化支持
+
+## 校验规则分类
+
+### 修饰规则（非校验）
+
+| 规则 | 说明 |
+|-----|-----|
+| `ci` | 大小写不敏感 |
+| `bail` | 首次失败即停止 |
+| `foreach` | 应用到数组元素 |
+
+### 必填规则
+
+| 规则 | 说明 |
+|-----|-----|
+| `required` | 必填 |
+| `required-if:field,value` | 条件必填 |
+| `required-with:field` | 关联必填 |
+| `required-without:field` | 缺失必填 |
+
+### 格式规则
+
+| 规则 | 说明 |
+|-----|-----|
+| `email` | 邮箱格式 |
+| `phone` | 手机号 |
+| `url` | URL 格式 |
+| `ip` / `ipv4` / `ipv6` | IP 地址 |
+| `date` | 日期格式 |
+| `json` | JSON 格式 |
+
+### 长度/大小规则
+
+| 规则 | 说明 |
+|-----|-----|
+| `length:min,max` | 长度范围 |
+| `min-length:n` | 最小长度 |
+| `max-length:n` | 最大长度 |
+| `between:min,max` | 数值范围 |
+| `min:n` | 最小值 |
+| `max:n` | 最大值 |
+
+### 比较规则
+
+| 规则 | 说明 |
+|-----|-----|
+| `same:field` | 与字段相同 |
+| `different:field` | 与字段不同 |
+| `in:a,b,c` | 在列表中 |
+| `not-in:a,b,c` | 不在列表中 |
+| `regex:pattern` | 正则匹配 |
+
+## 结构体校验
+
+```go
+type User struct {
+    Name  string `v:"required|length:2,20#请输入姓名|姓名长度2-20"`
+    Email string `v:"required|email#请输入邮箱|邮箱格式不正确"`
+    Age   int    `v:"required|between:1,150#请输入年龄|年龄范围1-150"`
+    Pass  string `v:"required|password2"`
+    Pass2 string `v:"required|same:Pass#请确认密码|两次密码不一致"`
+}
+
+func Handler(ctx context.Context, req *User) error {
+    err := g.Validator().Data(req).Run(ctx)
+    if err != nil {
+        return err
+    }
+    return nil
+}
+```
+
+## 自定义错误消息
+
+```go
+type User struct {
+    Name string `v:"required#请输入用户名"`
+    Age  int    `v:"between:1,150#年龄必须在:min到:max之间"`
+}
+```
+
+---
+
+---
+url: 'https://goframe.org/docs/core/gconv'
+description: GoFrame 类型转换 - 通用类型转换组件。
+---
+# 类型转换
+
+`gconv` 提供强大的类型转换功能。
+
+## 特性
+
+- 常用类型相互转换
+- 支持 Struct 转换
+- 高性能（优先断言而非反射）
+
+## 基本转换
+
+```go
+// 字符串转换
+s := gconv.String(123)        // "123"
+s := gconv.String(1.5)        // "1.5"
+s := gconv.String(true)       // "true"
+
+// 整数转换
+i := gconv.Int("123")         // 123
+i := gconv.Int64("123")       // int64(123)
+
+// 浮点转换
+f := gconv.Float64("1.23")    // 1.23
+
+// 布尔转换
+b := gconv.Bool("true")       // true
+b := gconv.Bool(1)            // true
+
+// 时间转换
+t := gconv.Time("2024-01-01")
+```
+
+## Map 转换
+
+```go
+type User struct {
+    Name string
+    Age  int
+}
+
+user := User{Name: "john", Age: 30}
+m := gconv.Map(user)
+// map[string]interface{}{"Name": "john", "Age": 30}
+```
+
+## Struct 转换
+
+```go
+data := g.Map{
+    "name": "john",
+    "age":  30,
+}
+
+var user User
+err := gconv.Struct(data, &user)
+// 或
+err := gconv.Scan(data, &user)
+```
+
+## Structs 批量转换
+
+```go
+list := []g.Map{
+    {"name": "john", "age": 30},
+    {"name": "jane", "age": 25},
+}
+
+var users []User
+err := gconv.Structs(list, &users)
+```
+
+---
+
+---
+url: 'https://goframe.org/docs/core/gerror'
+description: GoFrame 错误处理 - 带堆栈的统一错误处理。
+---
+# 错误处理
+
+`gerror` 是框架统一的错误处理组件，所有框架组件返回的错误都包含堆栈信息。
+
+## 创建错误
+
+```go
+// 基本错误
+err := gerror.New("something wrong")
+
+// 格式化错误
+err := gerror.Newf("user %d not found", userId)
+
+// 包装错误（保留原错误堆栈）
+err := gerror.Wrap(originalErr, "failed to process")
+err := gerror.Wrapf(originalErr, "user %d process failed", userId)
+```
+
+## 错误堆栈
+
+```go
+err := gerror.New("database error")
+err = gerror.Wrap(err, "service error")
+err = gerror.Wrap(err, "api error")
+
+// 打印完整堆栈
+fmt.Printf("%+v", err)
+// 输出：
+// api error: service error: database error
+// 1. api error
+//     main.main
+//     /path/to/file.go:15
+// 2. service error
+//     main.main
+//     /path/to/file.go:14
+// 3. database error
+//     main.main
+//     /path/to/file.go:13
+```
+
+## 错误比较
+
+```go
+// Equal 比较（严格）
+gerror.Equal(err1, err2)
+
+// Is 比较（包含）
+gerror.Is(err, targetErr)
+```
+
+## 错误码
+
+```go
+// 创建带错误码的错误
+err := gerror.NewCode(gcode.CodeInternalError, "internal error")
+
+// 获取错误码
+code := gerror.Code(err)
+```
+
+## 与日志集成
+
+```go
+// glog 自动支持打印堆栈
+g.Log().Errorf(ctx, "%+v", err)
+```
+
+---
+
+---
+url: 'https://goframe.org/docs/core/gview'
+description: GoFrame 模板引擎 - HTML 模板渲染。
+---
+# 模板引擎
+
+`gview` 提供简单、强大的模板引擎功能。
+
+## 特性
+
+- 多模板目录支持
+- 布局模板设计
+- 两级缓存设计
+- 自动缓存更新
+- 自定义函数绑定
+
+## 获取对象
+
+```go
+// 单例方式
+view := g.View()
+
+// 实例方式
+view := gview.Instance()
+```
+
+## 基本使用
+
+```go
+// 渲染模板
+content, err := g.View().Parse(ctx, "index.html", g.Map{
+    "title": "Welcome",
+    "user":  user,
+})
+
+// 在 HTTP 响应中使用
+r.Response.WriteTpl("index.html", g.Map{
+    "title": "Welcome",
+})
+```
+
+## 模板语法
+
+```html
+<!-- 变量 -->
+{{.title}}
+{{.user.Name}}
+
+<!-- 条件 -->
+{{if .isLogin}}
+    Welcome, {{.user.Name}}
+{{else}}
+    Please login
+{{end}}
+
+<!-- 循环 -->
+{{range .users}}
+    <li>{{.Name}}</li>
+{{end}}
+
+<!-- 包含模板 -->
+{{include "header.html" .}}
+
+<!-- 定义块 -->
+{{define "content"}}
+    Main content here
+{{end}}
+```
+
+## 配置
+
+```yaml
+viewer:
+    paths: ["resource/template"]
+    defaultFile: "index.html"
+    delimiters: ["{{", "}}"]
+```
+
+---
+
+---
+url: 'https://goframe.org/docs/core/gcmd'
+description: GoFrame 命令行管理 - CLI 程序开发。
+---
+# 命令行管理
+
+`gcmd` 提供强大的命令行管理功能。
+
+## 特性
+
+- 结构化参数处理
+- 自动数据转换和校验
+- 多级命令层级
+- 自动帮助生成
+- 终端交互
+- OpenTelemetry 支持
+
+## 基本使用
+
+```go
+package main
+
+import (
+    "context"
+    "github.com/gogf/gf/v2/frame/g"
+    "github.com/gogf/gf/v2/os/gcmd"
+)
+
+var Main = &gcmd.Command{
+    Name:  "main",
+    Brief: "主程序",
+    Func: func(ctx context.Context, parser *gcmd.Parser) error {
+        g.Log().Info(ctx, "Hello CLI")
+        return nil
+    },
+}
+
+func main() {
+    Main.Run(context.Background())
+}
+```
+
+## 子命令
+
+```go
+var (
+    Main = &gcmd.Command{
+        Name: "app",
+    }
+
+    Start = &gcmd.Command{
+        Name:  "start",
+        Brief: "启动服务",
+        Func:  startFunc,
+    }
+
+    Stop = &gcmd.Command{
+        Name:  "stop",
+        Brief: "停止服务",
+        Func:  stopFunc,
+    }
+)
+
+func init() {
+    Main.AddCommand(Start, Stop)
+}
+```
+
+## 结构化参数
+
+```go
+type StartInput struct {
+    g.Meta `name:"start" brief:"启动服务"`
+    Port   int    `v:"required" short:"p" name:"port" brief:"端口号"`
+    Daemon bool   `short:"d" name:"daemon" brief:"后台运行"`
+}
+
+type StartOutput struct{}
+
+func (c *Controller) Start(ctx context.Context, in StartInput) (out *StartOutput, err error) {
+    g.Log().Infof(ctx, "Starting server on port %d", in.Port)
+    return
+}
+```
+
+---
+
+---
+url: 'https://goframe.org/docs/core/gi18n'
+description: GoFrame 国际化 - 多语言支持。
+---
+# 国际化
+
+`gi18n` 提供 I18N 国际化支持。
+
+## 特性
+
+- 支持多种配置格式（yaml/toml/json/xml/ini）
+- 自动识别语言文件
+- 自定义路径配置
+
+## 语言文件
+
+`resource/i18n/zh-CN/messages.yaml`:
+```yaml
+hello: "你好"
+welcome: "欢迎 {name}"
+```
+
+`resource/i18n/en/messages.yaml`:
+```yaml
+hello: "Hello"
+welcome: "Welcome {name}"
+```
+
+## 使用方法
+
+```go
+// 获取 I18N 对象
+i18n := g.I18n()
+
+// 设置语言
+i18n.SetLanguage("zh-CN")
+
+// 翻译
+text := i18n.T(ctx, "hello")  // "你好"
+
+// 带参数翻译
+text := i18n.Tf(ctx, "welcome", g.Map{"name": "John"})  // "欢迎 John"
+
+// 上下文绑定语言
+ctx = i18n.WithLanguage(ctx, "en")
+text := i18n.T(ctx, "hello")  // "Hello"
+```
+
+---
+
+---
+url: 'https://goframe.org/docs/core/g'
+description: GoFrame g 包 - 常用类型和单例对象。
+---
+# g 包
+
+`g` 包提供常用类型别名和单例对象访问。
+
+## 类型别名
+
+```go
+type Map = map[string]interface{}
+type MapStrStr = map[string]string
+type MapIntInt = map[int]int
+type List = []Map
+type ListStrAny = []map[string]interface{}
+```
+
+## 单例对象
+
+| 方法 | 说明 |
+|-----|-----|
+| `g.Server()` | HTTP Server |
+| `g.Client()` | HTTP Client |
+| `g.DB()` | 数据库 ORM |
+| `g.Redis()` | Redis 客户端 |
+| `g.Cfg()` | 配置管理 |
+| `g.Log()` | 日志组件 |
+| `g.View()` | 模板引擎 |
+| `g.I18n()` | 国际化 |
+| `g.Res()` | 资源管理 |
+| `g.Validator()` | 数据校验 |
+
+## 使用示例
+
+```go
+// 快速创建 Map
+data := g.Map{
+    "name": "john",
+    "age":  30,
+}
+
+// 使用单例
+g.Log().Info(ctx, "message")
+g.DB().Model("user").All()
+g.Cfg().Get(ctx, "server.port")
+```
+
+---
+
+---
+url: 'https://goframe.org/docs/cli'
+description: GoFrame CLI 开发工具 - gf 命令行工具完整指南。
+---
+# CLI 开发工具
+
+`gf` 是 GoFrame 框架的官方 CLI 工具。
+
+## 安装
+
+```bash
+# Go Install
+go install github.com/gogf/gf/cmd/gf/v2@latest
+
+# Mac/Linux 一键安装
+wget -O gf https://github.com/gogf/gf/releases/latest/download/gf_$(go env GOOS)_$(go env GOARCH) && chmod +x gf && ./gf install -y && rm ./gf
+```
+
+## 核心命令
+
+| 命令 | 说明 |
+|-----|-----|
+| `gf init` | 创建项目 |
+| `gf run` | 自动编译运行 |
+| `gf build` | 交叉编译 |
+| `gf gen dao` | 生成 DAO 代码 |
+| `gf gen ctrl` | 生成控制器 |
+| `gf gen service` | 生成服务接口 |
+| `gf gen enums` | 生成枚举 |
+| `gf gen pb` | 编译 Proto |
+| `gf pack` | 资源打包 |
+| `gf docker` | Docker 构建 |
+| `gf version` | 版本信息 |
+| `gf up` | 升级框架 |
+
+## 配置文件
+
+`hack/config.yaml`:
+
+```yaml
+gfcli:
+  gen:
+    dao:
+      - link: "mysql:root:password@tcp(127.0.0.1:3306)/test"
+        tables: ""
+        removePrefix: "gf_"
+        jsonCase: "CamelLower"
+        stdTime: true
+
+  build:
+    name: "app"
+    arch: "amd64"
+    system: "linux"
+    output: "./bin"
+
+  run:
+    path: "./bin"
+    watchPaths:
+      - "api/*.go"
+      - "internal/**/*.go"
+```
+
+---
+
+---
+url: 'https://goframe.org/docs/cli/init'
+description: GoFrame CLI init 命令 - 创建项目。
+---
+# 项目创建 (init)
+
+## 使用方法
+
+```bash
+gf init NAME [OPTIONS]
+```
+
+## 参数
+
+| 参数 | 说明 |
+|-----|-----|
+| `NAME` | 项目名称 |
+| `-m, --mono` | 创建 Mono-repo |
+| `-a, --monoApp` | 在 Mono-repo 中创建子应用 |
+| `-u, --update` | 初始化后更新框架 |
+| `-g, --module` | 自定义模块名 |
+
+## 示例
+
+```bash
+# 创建项目
+gf init myapp
+
+# 在当前目录创建
+gf init .
+
+# 创建 Mono-repo
+gf init mymono -m
+
+# 创建子应用
+cd mymono
+gf init app/user -a
+```
+
+---
+
+---
+url: 'https://goframe.org/docs/cli/gen-dao'
+description: GoFrame CLI gen dao 命令 - 生成数据访问层代码。
+---
+# 数据访问层生成 (gen dao)
+
+## 功能
+
+从数据库表自动生成：
+- `dao` - 数据访问对象
+- `do` - 数据转换对象
+- `entity` - 数据实体
+
+## 使用
+
+```bash
+gf gen dao
+```
+
+## 配置示例
+
+```yaml
+gfcli:
+  gen:
+    dao:
+      - link: "mysql:root:password@tcp(127.0.0.1:3306)/test"
+        tables: "user,order"
+        removePrefix: "gf_"
+        jsonCase: "Snake"
+        stdTime: true
+        descriptionTag: true
+```
+
+## 主要参数
+
+| 参数 | 说明 |
+|-----|-----|
+| `link` | 数据库连接（必需）|
+| `tables` | 指定表名 |
+| `removePrefix` | 移除表名前缀 |
+| `jsonCase` | JSON 标签风格 |
+| `stdTime` | 使用 time.Time |
+| `overwriteDao` | 覆盖 DAO 文件 |
+
+---
+
+---
+url: 'https://goframe.org/docs/cli/gen-ctrl'
+description: GoFrame CLI gen ctrl 命令 - 生成控制器代码。
+---
+# 控制器生成 (gen ctrl)
+
+## 功能
+
+根据 API 定义生成控制器和 HTTP SDK。
+
+## API 定义规范
+
+文件路径：`/api/模块名/版本号/文件名.go`
+
+```go
+// api/user/v1/user.go
+package v1
+
+import "github.com/gogf/gf/v2/frame/g"
+
+type GetListReq struct {
+    g.Meta `path:"/user" method:"get" tags:"用户" summary:"用户列表"`
+    Page   int `json:"page" d:"1"`
+    Size   int `json:"size" d:"10"`
+}
+
+type GetListRes struct {
+    List  []UserInfo `json:"list"`
+    Total int        `json:"total"`
+}
+```
+
+## 使用
+
+```bash
+gf gen ctrl
+```
+
+---
+
+---
+url: 'https://goframe.org/docs/cli/gen-service'
+description: GoFrame CLI gen service 命令 - 生成服务接口。
+---
+# 服务接口生成 (gen service)
+
+## 功能
+
+从 Logic 层代码自动生成 Service 层接口定义。
+
+## 使用
+
+```bash
+gf gen service
+```
+
+## 配置
+
+```yaml
+gfcli:
+  gen:
+    service:
+      srcFolder: "internal/logic"
+      dstFolder: "internal/service"
+      dstFileNameCase: "Snake"
+```
+
+---
+
+---
+url: 'https://goframe.org/docs/cli/build'
+description: GoFrame CLI build 命令 - 交叉编译。
+---
+# 交叉编译 (build)
+
+## 功能
+
+跨平台编译可执行文件，自动嵌入构建变量。
+
+## 使用
+
+```bash
+gf build
+```
+
+## 配置
+
+```yaml
+gfcli:
+  build:
+    name: "myapp"
+    arch: "amd64,arm64"
+    system: "linux,darwin,windows"
+    output: "./bin"
+    packSrc: "manifest/config"
+```
+
+## 获取构建信息
+
+```go
+import "github.com/gogf/gf/v2/os/gbuild"
+
+info := gbuild.Info()
+fmt.Println(info.GoFrame)  // 框架版本
+fmt.Println(info.Git)      // Git 提交
+fmt.Println(info.Time)     // 编译时间
+```
+
+---
+
+---
+url: 'https://goframe.org/docs/cli/run'
+description: GoFrame CLI run 命令 - 自动编译运行。
+---
+# 自动编译 (run)
+
+## 功能
+
+监听文件变化，自动重新编译并重启应用。
+
+## 使用
+
+```bash
+gf run main.go
+```
+
+## 配置
+
+```yaml
+gfcli:
+  run:
+    path: "./bin"
+    args: "server -p 8080"
+    watchPaths:
+      - "api/*.go"
+      - "internal/**/*.go"
+      - "manifest/config/*.yaml"
+```
+
+---
+
+---
+url: 'https://goframe.org/docs/api-doc'
+description: GoFrame API 文档生成 - 自动生成 OpenAPI 文档。
+---
+# API 文档生成
+
+GoFrame 支持自动生成 OpenAPI v3 规范文档和 Swagger UI。
+
+## 启用
+
+```go
+s := g.Server()
+s.SetOpenApiPath("/api.json")    // OpenAPI 规范
+s.SetSwaggerPath("/swagger")     // Swagger UI
+```
+
+## 结构体定义
+
+```go
+type GetUserReq struct {
+    g.Meta `path:"/user/:id" method:"get" tags:"用户" summary:"获取用户"`
+    Id     int `v:"required" json:"id" dc:"用户ID"`
+}
+
+type GetUserRes struct {
+    Id    int    `json:"id" dc:"用户ID"`
+    Name  string `json:"name" dc:"用户名"`
+    Email string `json:"email" dc:"邮箱"`
+}
+```
+
+## 访问文档
+
+- OpenAPI JSON: http://localhost:8000/api.json
+- Swagger UI: http://localhost:8000/swagger
+
+---
+
+---
+url: 'https://goframe.org/docs/best-practices'
+description: GoFrame 最佳实践 - 推荐的开发模式和规范。
+---
+# 最佳实践
+
+## 项目结构
+
+1. 使用官方推荐的目录结构
+2. 使用 `gf init` 创建项目
+3. 根据实际需求灵活增减目录
+
+## 请求处理
+
+1. 使用规范路由定义 API
+2. 在结构体中定义校验规则
+3. 使用中间件统一响应格式
+
+## 数据库操作
+
+1. 使用 `gf gen dao` 生成 DAO
+2. 使用闭包方式处理事务
+3. 传递 Context 用于链路追踪
+
+## 错误处理
+
+1. 使用 `gerror` 创建错误
+2. 使用 `Wrap` 包装错误保留堆栈
+3. 日志中使用 `%+v` 打印完整堆栈
+
+## 配置管理
+
+1. 使用 `g.Cfg()` 获取配置
+2. 敏感信息使用环境变量
+3. 不同环境使用不同配置文件
+
+## 日志记录
+
+1. 使用 `g.Log()` 单例
+2. 传递 Context 支持链路追踪
+3. 生产环境关闭 Debug 日志
+
+## 缓存使用
+
+1. 使用 `GetOrSetFuncLock` 防止缓存击穿
+2. 分布式环境使用 Redis 适配器
+3. 合理设置过期时间
+
+---
+
+---
+url: 'https://goframe.org/docs/faq'
+description: GoFrame 常见问题 - FAQ。
+---
+# 常见问题
+
+## Q: 如何选择框架版本？
+
+A: 推荐使用最新的 v2.x 版本，Go 版本要求 >= 1.20。
+
+## Q: g.Server() 多次调用会创建多个实例吗？
+
+A: 不会，`g.Server()` 返回单例对象，多次调用返回同一个实例。
+
+## Q: 如何处理跨域请求？
+
+A: 使用内置的 CORS 中间件：
+```go
+s.Use(ghttp.MiddlewareCORS)
+```
+
+## Q: ORM 连接需要手动关闭吗？
+
+A: 不需要，连接池自动管理连接生命周期。
+
+## Q: 如何在生产环境禁用调试信息？
+
+A: 配置文件中设置：
+```yaml
+logger:
+    level: "PROD"  # 或 "ERROR"
+```
+
+## Q: 结构体校验的 required 规则对零值不生效？
+
+A: 使用指针类型、联合规则或 Assoc 校验：
+```go
+type User struct {
+    Age *int `v:"required"`  // 使用指针
+}
+```
+
+## Q: 如何获取原始请求体？
+
+A: 使用 `r.GetBody()` 或 `r.GetBodyString()`。
+
+---
+
+---
+url: 'https://goframe.org/docs/changelog'
+description: GoFrame 版本历史 - 更新日志。
+---
+# 版本说明
+
+## 当前版本
+
+- 最新稳定版：2.9.x
+- Go 最低要求：1.20
+
+## 主要特性演进
+
+### v2.x
+
+- 全面支持 Context
+- OpenTelemetry 链路追踪
+- 接口化组件设计
+- 增强的错误处理
+- 改进的代码生成工具
+
+### 升级指南
+
+从 v1.x 升级到 v2.x：
+1. 更新 import 路径（`gf` -> `gf/v2`）
+2. 添加 Context 参数
+3. 调整目录结构
+4. 运行 `gf fix` 自动修复
+
+## 文档版本
+
+- 2.9.x (最新)
+- 2.8.x
+- 2.7.x
+- ...
+- 1.16.x
+
+---
+
+---
+url: 'https://goframe.org/docs/micro'
+description: GoFrame 微服务开发 - gRPC 服务、服务注册发现、负载均衡。
+---
+# 微服务开发
+
+GoFrame 提供完整的微服务开发支持，包括 gRPC 服务、服务注册发现等。
+
+## 核心组件
+
+- **grpcx** - gRPC 服务封装
+- **gsvc** - 服务注册发现
+- **etcd** - 注册中心适配器
+
+## 安装依赖
+
+```bash
+# gRPC 支持
+go get -u github.com/gogf/gf/contrib/rpc/grpcx/v2
+
+# etcd 注册中心
+go get -u github.com/gogf/gf/contrib/registry/etcd/v2
+```
+
+## gRPC 服务端
+
+```go
+package main
+
+import (
+    "github.com/gogf/gf/contrib/registry/etcd/v2"
+    "github.com/gogf/gf/contrib/rpc/grpcx/v2"
+    "your-project/internal/controller"
+)
+
+func main() {
+    // 注册 etcd 服务发现
+    grpcx.Resolver.Register(etcd.New("127.0.0.1:2379"))
+
+    // 创建 gRPC 服务
+    s := grpcx.Server.New()
+    controller.Register(s)
+    s.Run()
+}
+```
+
+## gRPC 客户端
+
+```go
+package main
+
+import (
+    "github.com/gogf/gf/contrib/registry/etcd/v2"
+    "github.com/gogf/gf/contrib/rpc/grpcx/v2"
+    "github.com/gogf/gf/v2/frame/g"
+    "github.com/gogf/gf/v2/os/gctx"
+    "your-project/protobuf"
+)
+
+func main() {
+    grpcx.Resolver.Register(etcd.New("127.0.0.1:2379"))
+
+    var (
+        ctx    = gctx.New()
+        conn   = grpcx.Client.MustNewGrpcClientConn("demo")
+        client = protobuf.NewGreeterClient(conn)
+    )
+
+    res, err := client.SayHello(ctx, &protobuf.HelloRequest{Name: "World"})
+    if err != nil {
+        g.Log().Error(ctx, err)
+        return
+    }
+    g.Log().Debug(ctx, "Response:", res.Message)
+}
+```
+
+## HTTP 服务注册
+
+```go
+package main
+
+import (
+    "github.com/gogf/gf/contrib/registry/etcd/v2"
+    "github.com/gogf/gf/v2/frame/g"
+    "github.com/gogf/gf/v2/net/ghttp"
+    "github.com/gogf/gf/v2/net/gsvc"
+)
+
+func main() {
+    // 设置全局注册中心
+    gsvc.SetRegistry(etcd.New("127.0.0.1:2379"))
+
+    s := g.Server("hello.svc")
+    s.BindHandler("/", func(r *ghttp.Request) {
+        r.Response.Write("Hello World")
+    })
+    s.Run()
+}
+```
+
+## HTTP 服务发现
+
+```go
+package main
+
+import (
+    "github.com/gogf/gf/contrib/registry/etcd/v2"
+    "github.com/gogf/gf/v2/frame/g"
+    "github.com/gogf/gf/v2/net/gsvc"
+    "github.com/gogf/gf/v2/os/gctx"
+)
+
+func main() {
+    gsvc.SetRegistry(etcd.New("127.0.0.1:2379"))
+
+    ctx := gctx.New()
+    // 通过服务名访问
+    res := g.Client().GetContent(ctx, "http://hello.svc/")
+    g.Log().Info(ctx, res)
+}
+```
+
+## gRPC 配置
+
+```yaml
+grpc:
+    name: "demo"
+    address: ":8000"
+    logPath: "./log"
+    logStdout: true
+    errorLogEnabled: true
+    accessLogEnabled: true
+    errorStack: true
+```
+
+## 支持的注册中心
+
+| 注册中心 | 包路径 |
+|---------|--------|
+| etcd | `github.com/gogf/gf/contrib/registry/etcd/v2` |
+| polaris | `github.com/gogf/gf/contrib/registry/polaris/v2` |
+| nacos | `github.com/gogf/gf/contrib/registry/nacos/v2` |
+| zookeeper | `github.com/gogf/gf/contrib/registry/zookeeper/v2` |
+
+---
+
+---
+url: 'https://goframe.org/docs/obs'
+description: GoFrame 服务可观测性 - 链路跟踪、监控告警。
+---
+# 服务可观测性
+
+GoFrame 内置 OpenTelemetry 支持，提供完整的服务可观测性能力。
+
+## 两大功能
+
+1. **服务链路跟踪** - 分布式追踪
+2. **服务监控告警** - 指标采集和监控
+
+## 链路跟踪
+
+### 初始化 Jaeger
+
+```go
+package main
+
+import (
+    "github.com/gogf/gf/contrib/trace/jaeger/v2"
+    "github.com/gogf/gf/v2/frame/g"
+    "github.com/gogf/gf/v2/net/gtrace"
+    "github.com/gogf/gf/v2/os/gctx"
+)
+
+const (
+    ServiceName       = "my-service"
+    JaegerUdpEndpoint = "localhost:6831"
+)
+
+func main() {
+    ctx := gctx.New()
+
+    // 初始化 Jaeger
+    tp, err := jaeger.Init(ServiceName, JaegerUdpEndpoint)
+    if err != nil {
+        g.Log().Fatal(ctx, err)
+    }
+    defer tp.Shutdown(ctx)
+
+    // 创建根 Span
+    ctx, span := gtrace.NewSpan(ctx, "main")
+    defer span.End()
+
+    // 业务逻辑...
+    DoSomething(ctx)
+}
+```
+
+### 创建子 Span
+
+```go
+func DoSomething(ctx context.Context) {
+    ctx, span := gtrace.NewSpan(ctx, "DoSomething")
+    defer span.End()
+
+    // 业务逻辑...
+}
+
+func GetUser(ctx context.Context, id int) g.Map {
+    ctx, span := gtrace.NewSpan(ctx, "GetUser")
+    defer span.End()
+
+    // 调用其他函数，自动传播 trace 上下文
+    info := GetUserInfo(ctx, id)
+    detail := GetUserDetail(ctx, id)
+
+    return g.Map{"info": info, "detail": detail}
+}
+```
+
+### HTTP Server 自动追踪
+
+```go
+s := g.Server()
+s.Group("/", func(group *ghttp.RouterGroup) {
+    // 添加追踪中间件
+    group.Middleware(ghttp.MiddlewareServerTracing)
+    group.ALL("/user", userController)
+})
+```
+
+### Baggage 传递
+
+```go
+// 设置 Baggage
+ctx = gtrace.SetBaggageValue(ctx, "user_id", 100)
+
+// 获取 Baggage
+userId := gtrace.GetBaggageValue(ctx, "user_id")
+```
+
+## 监控指标
+
+### 安装依赖
+
+```bash
+go get -u github.com/gogf/gf/contrib/metric/otelmetric/v2
+go get -u go.opentelemetry.io/otel/exporters/prometheus
+```
+
+### 同步指标
+
+```go
+package main
+
+import (
+    "go.opentelemetry.io/otel/exporters/prometheus"
+    "github.com/gogf/gf/contrib/metric/otelmetric/v2"
+    "github.com/gogf/gf/v2/frame/g"
+    "github.com/gogf/gf/v2/os/gctx"
+    "github.com/gogf/gf/v2/os/gmetric"
+)
+
+var (
+    meter = gmetric.GetGlobalProvider().Meter(gmetric.MeterOption{
+        Instrument:        "my-app",
+        InstrumentVersion: "v1.0",
+    })
+
+    // Counter 计数器
+    counter = meter.MustCounter(
+        "app.request.count",
+        gmetric.MetricOption{
+            Help: "Total request count",
+            Unit: "1",
+        },
+    )
+
+    // UpDownCounter 可增减计数器
+    activeUsers = meter.MustUpDownCounter(
+        "app.users.active",
+        gmetric.MetricOption{
+            Help: "Active users count",
+            Unit: "1",
+        },
+    )
+
+    // Histogram 直方图
+    latency = meter.MustHistogram(
+        "app.request.latency",
+        gmetric.MetricOption{
+            Help:    "Request latency",
+            Unit:    "ms",
+            Buckets: []float64{10, 50, 100, 500, 1000, 5000},
+        },
+    )
+)
+
+func main() {
+    ctx := gctx.New()
+
+    // Prometheus 导出器
+    exporter, err := prometheus.New(
+        prometheus.WithoutCounterSuffixes(),
+        prometheus.WithoutUnits(),
+    )
+    if err != nil {
+        g.Log().Fatal(ctx, err)
+    }
+
+    // OpenTelemetry Provider
+    provider := otelmetric.MustProvider(otelmetric.WithReader(exporter))
+    provider.SetAsGlobal()
+    defer provider.Shutdown(ctx)
+
+    // 记录指标
+    counter.Inc(ctx)
+    counter.Add(ctx, 10)
+
+    activeUsers.Inc(ctx)
+    activeUsers.Dec(ctx)
+
+    latency.Record(50)
+    latency.Record(200)
+
+    // 启动 Prometheus 指标服务
+    otelmetric.StartPrometheusMetricsServer(8000, "/metrics")
+}
+```
+
+### HTTP Server 指标
+
+```go
+s := g.Server()
+
+// 业务端点
+s.BindHandler("/", func(r *ghttp.Request) {
+    r.Response.Write("ok")
+})
+
+// 指标端点
+s.BindHandler("/metrics", otelmetric.PrometheusHandler)
+
+s.SetPort(8000)
+s.Run()
+```
+
+### 指标属性
+
+```go
+// 在 Meter 级别添加常量属性
+meter = gmetric.GetGlobalProvider().Meter(gmetric.MeterOption{
+    Instrument: "my-app",
+    Attributes: gmetric.Attributes{
+        gmetric.NewAttribute("service", "user-service"),
+        gmetric.NewAttribute("env", "production"),
+    },
+})
+
+// 在指标级别添加属性
+counter = meter.MustCounter("request.count", gmetric.MetricOption{
+    Attributes: gmetric.Attributes{
+        gmetric.NewAttribute("endpoint", "/api/user"),
+    },
+})
+```
+
+---
+
+---
+url: 'https://goframe.org/docs/deploy'
+description: GoFrame 项目部署 - 独立部署、代理部署、容器部署。
+---
+# 项目部署
+
+## 部署方式
+
+### 1. 独立部署
+
+适用于 Linux/MacOS 服务器。
+
+#### 使用 nohup
+
+```bash
+nohup ./myapp > /dev/null 2>&1 &
+```
+
+#### 使用 systemctl
+
+创建服务文件 `/etc/systemd/system/myapp.service`：
+
+```ini
+[Unit]
+Description=My GoFrame Application
+After=network.target
+
+[Service]
+Type=simple
+User=www
+WorkingDirectory=/var/www/myapp
+ExecStart=/var/www/myapp/myapp
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+启动服务：
+
+```bash
+systemctl daemon-reload
+systemctl enable myapp
+systemctl start myapp
+```
+
+#### 使用 Supervisor
+
+配置文件 `/etc/supervisor/conf.d/myapp.conf`：
+
+```ini
+[program:myapp]
+directory=/var/www/myapp
+command=/var/www/myapp/myapp
+autostart=true
+autorestart=true
+user=www
+stdout_logfile=/var/log/myapp/stdout.log
+stderr_logfile=/var/log/myapp/stderr.log
+```
+
+### 2. 代理部署
+
+使用 Nginx 作为反向代理。
+
+`/etc/nginx/conf.d/myapp.conf`：
+
+```nginx
+upstream myapp {
+    server 127.0.0.1:8000;
+    keepalive 64;
+}
+
+server {
+    listen 80;
+    server_name example.com;
+
+    # 静态文件
+    location /static {
+        alias /var/www/myapp/static;
+        expires 7d;
+    }
+
+    # 动态请求代理
+    location / {
+        proxy_pass http://myapp;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Connection "";
+    }
+}
+```
+
+### 3. 容器部署
+
+#### Dockerfile
+
+```dockerfile
+# 构建阶段
+FROM golang:1.21-alpine AS builder
+
+WORKDIR /app
+COPY . .
+
+RUN go mod download
+RUN CGO_ENABLED=0 GOOS=linux go build -o main .
+
+# 运行阶段
+FROM alpine:3.18
+
+WORKDIR /app
+
+COPY --from=builder /app/main .
+COPY --from=builder /app/manifest/config ./manifest/config
+
+RUN chmod +x /app/main
+
+EXPOSE 8000
+
+CMD ["/app/main"]
+```
+
+#### Docker Compose
+
+```yaml
+version: '3.8'
+
+services:
+    app:
+        build: .
+        ports:
+            - "8000:8000"
+        volumes:
+            - ./manifest/config:/app/manifest/config
+        environment:
+            - GF_SERVER_ADDRESS=:8000
+        depends_on:
+            - mysql
+            - redis
+
+    mysql:
+        image: mysql:8.0
+        environment:
+            MYSQL_ROOT_PASSWORD: password
+            MYSQL_DATABASE: myapp
+        volumes:
+            - mysql_data:/var/lib/mysql
+
+    redis:
+        image: redis:7-alpine
+        volumes:
+            - redis_data:/data
+
+volumes:
+    mysql_data:
+    redis_data:
+```
+
+#### 使用 gf docker 命令
+
+```bash
+# 构建并推送镜像
+gf docker main.go -p -tn myapp:v1.0.0
+```
+
+## 编译优化
+
+```bash
+# 减小二进制体积
+go build -ldflags="-s -w" -o myapp
+
+# 交叉编译
+GOOS=linux GOARCH=amd64 go build -o myapp
+
+# 使用 gf build
+gf build -a amd64 -s linux
+```
+
+---
+
+---
+url: 'https://goframe.org/docs/components'
+description: GoFrame 组件列表 - 完整的框架组件清单。
+---
+# 组件列表
+
+GoFrame 提供 60+ 基础组件，分为核心模块和社区模块。
+
+## 数据结构 (9个)
+
+| 组件 | 包名 | 说明 |
+|-----|------|-----|
+| 数组 | garray | 并发安全数组 |
+| 列表 | glist | 并发安全链表 |
+| 集合 | gset | 并发安全集合 |
+| 字典 | gmap | 并发安全 Map |
+| 队列 | gqueue | 动态队列 |
+| 环形数组 | gring | 固定大小环形数组 |
+| 树形结构 | gtree | 多种树实现 |
+| 类型 | gtype | 并发安全基本类型 |
+| 泛型变量 | gvar | 通用动态变量 |
+
+## 系统操作 (19个)
+
+| 组件 | 包名 | 说明 |
+|-----|------|-----|
+| 配置管理 | gcfg | 配置文件读取 |
+| 命令行 | gcmd | CLI 程序开发 |
+| 上下文 | gctx | Context 管理 |
+| 环境变量 | genv | 环境变量操作 |
+| 文件操作 | gfile | 文件系统操作 |
+| 文件监控 | gfsnotify | 文件变化监控 |
+| 日志管理 | glog | 日志记录 |
+| 进程管理 | gproc | 进程操作 |
+| 资源管理 | gres | 资源打包 |
+| 定时器 | gtimer | 定时任务 |
+| 缓存 | gcache | 缓存管理 |
+| 内存锁 | gmlock | 内存锁 |
+| 互斥锁 | gmutex | 互斥锁封装 |
+| 读写锁 | grwmutex | 读写锁封装 |
+| Session | gsession | Session 管理 |
+| 时间 | gtime | 时间操作 |
+| 视图 | gview | 模板引擎 |
+| 指标 | gmetric | 监控指标 |
+| 追踪 | gtrace | 链路追踪 |
+
+## 文本处理 (2个)
+
+| 组件 | 包名 | 说明 |
+|-----|------|-----|
+| 正则 | gregex | 正则表达式 |
+| 字符串 | gstr | 字符串操作 |
+
+## 编解码 (12个)
+
+| 组件 | 包名 | 说明 |
+|-----|------|-----|
+| Base64 | gbase64 | Base64 编解码 |
+| 压缩 | gcompress | 数据压缩 |
+| HTML | ghtml | HTML 处理 |
+| JSON | gjson | JSON 处理 |
+| 解析器 | gparser | 通用数据解析 |
+| INI | gini | INI 配置 |
+| Properties | gproperties | Properties 配置 |
+| TOML | gtoml | TOML 配置 |
+| XML | gxml | XML 处理 |
+| YAML | gyaml | YAML 配置 |
+| URL | gurl | URL 处理 |
+| 字符集 | gcharset | 字符编码转换 |
+
+## 数据库 (2个)
+
+| 组件 | 包名 | 说明 |
+|-----|------|-----|
+| ORM | gdb | 数据库操作 |
+| Redis | gredis | Redis 客户端 |
+
+## 网络组件 (2个)
+
+| 组件 | 包名 | 说明 |
+|-----|------|-----|
+| HTTP | ghttp | HTTP Server/Client |
+| TCP | gtcp | TCP 通信 |
+
+## 加密解密 (5个)
+
+| 组件 | 包名 | 说明 |
+|-----|------|-----|
+| MD5 | gmd5 | MD5 哈希 |
+| SHA1 | gsha1 | SHA1 哈希 |
+| CRC32 | gcrc32 | CRC32 校验 |
+| AES | gaes | AES 加密 |
+| DES | gdes | DES 加密 |
+
+## 工具组件 (7个)
+
+| 组件 | 包名 | 说明 |
+|-----|------|-----|
+| 类型转换 | gconv | 类型转换 |
+| 数据校验 | gvalid | 数据验证 |
+| 随机数 | grand | 随机数生成 |
+| UUID | guid | UUID 生成 |
+| 工具函数 | gutil | 通用工具 |
+| 分页 | gpage | 分页处理 |
+| 国际化 | gi18n | I18N 支持 |
+
+## 错误处理 (2个)
+
+| 组件 | 包名 | 说明 |
+|-----|------|-----|
+| 错误 | gerror | 错误处理 |
+| 错误码 | gcode | 错误码管理 |
+
+## 调试测试 (2个)
+
+| 组件 | 包名 | 说明 |
+|-----|------|-----|
+| 调试 | gdebug | 调试工具 |
+| 测试 | gtest | 单元测试 |
+
+## 社区模块
+
+社区贡献的模块在 `github.com/gogf/gf/contrib` 下：
+
+| 分类 | 模块 |
+|-----|------|
+| 数据库驱动 | mysql, pgsql, sqlite, mssql, oracle, clickhouse |
+| 注册中心 | etcd, nacos, polaris, zookeeper |
+| 配置中心 | apollo, nacos, polaris |
+| 链路追踪 | jaeger, otlphttp, otlpgrpc |
+| 监控指标 | otelmetric |
+| NoSQL | redis |
+| RPC | grpcx |
