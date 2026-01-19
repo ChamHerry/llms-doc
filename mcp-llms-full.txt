@@ -1,0 +1,2385 @@
+---
+url: https://modelcontextprotocol.io
+description: Model Context Protocol (MCP) 完整中文文档 - AI应用的标准化连接协议，提供Resources、Tools、Prompts三大原语，支持Elicitation、Tasks API、Streamable HTTP等新特性，兼容Python和TypeScript SDK开发，实现AI与外部系统的安全集成。
+version: 2025-11-25
+---
+
+# Model Context Protocol (MCP) 完整文档
+
+Model Context Protocol (MCP) 是由 Anthropic 于 2024 年 11 月发布的开放标准协议，为 AI 应用提供与外部系统的标准化连接方式。它被称为"AI 应用的 USB-C 接口"，提供统一的、可互操作的方式连接数据源、工具和工作流。
+
+**当前规范版本**: 2025-11-25（于 2025 年 12 月移交至 Linux 基金会下的 Agentic AI Foundation）
+
+---
+
+# 介绍
+
+MCP 是一个开放标准，用于连接 AI 助手与其所需的上下文数据系统，无论是内容存储库、业务工具还是开发环境。
+
+## 核心特性
+
+- **数据访问**: 连接本地文件、数据库、信息系统
+- **工具集成**: 集成搜索引擎、计算器等外部工具
+- **工作流执行**: 利用专业化提示和自动化流程
+- **安全设计**: 基于人机回路的安全授权机制
+- **协议标准**: 基于 JSON-RPC 2.0 的消息格式
+
+## 设计目标
+
+| 设计目标 | 说明 |
+|---------|------|
+| 易于构建 | 服务器接口简洁明了，主机处理复杂编排 |
+| 高度可组合 | 每个服务器提供独立功能，多个服务器无缝组合 |
+| 隔离与安全 | 服务器之间隔离，主机强制执行安全边界 |
+| 渐进增强 | 核心协议最小化，功能逐步协商扩展 |
+
+---
+
+# 核心架构
+
+## MCP 架构概述
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                         HOST (主机进程)                       │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │                                                       │  │
+│  │  • 创建和管理多个 Client 实例                         │  │
+│  │  • 控制连接权限和生命周期                             │  │
+│  │  • 强制执行安全策略和用户授权                         │  │
+│  │  • 协调 AI/LLM 集成和采样                             │  │
+│  │  • 聚合多个 Client 的上下文                           │  │
+│  │                                                       │  │
+│  └───────────────────────────────────────────────────────┘  │
+│                                                              │
+│  ┌──────────────────┐   ┌──────────────────┐   ┌──────────┐ │
+│  │    Client 1      │   │    Client 2      │   │ Client N │ │
+│  └────────┬─────────┘   └────────┬─────────┘   └────┬─────┘ │
+└───────────┼────────────────────────┼────────────────┼────────┘
+            │                        │                │
+    ┌───────┼────────┐      ┌────────┼────────┐      │
+    │       │        │      │        │        │      │
+    ▼       ▼        ▼      ▼        ▼        ▼      ▼
+┌────────┐┌────────┐┌────────┐┌────────┐  ┌────────┐
+│Server 1││Server 2││Server 3││Server 4│  │ServerN │
+└────────┘└────────┘└────────┘└────────┘  └────────┘
+```
+
+## 组件职责
+
+### Host（主机）
+
+主机是整个系统的管理器和协调者：
+- 生命周期管理：Client 创建和销毁、连接初始化和终止
+- 安全控制：用户授权决策、访问权限检查、数据隐私保护
+- 能力协商：能力声明交换、版本协商、功能支持验证
+- 上下文管理：聚合多个 Client 的数据、维护完整的对话历史
+
+### Client（客户端）
+
+每个 Client 与一个 Server 建立 1:1 的隔离连接：
+- 协议处理：JSON-RPC 2.0 消息编码/解码、请求-响应匹配
+- 连接管理：建立和维护连接、协商能力、处理断线重连
+- 消息路由：双向消息转发、订阅管理、通知分发
+
+### Server（服务器）
+
+服务器提供专业化的上下文和能力：
+- Resources（资源）：文本数据、文件内容、数据库查询结果
+- Prompts（提示）：预定义的消息模板、工作流编排
+- Tools（工具）：可执行函数、外部系统调用、业务逻辑执行
+- Sampling（采样）：向 Client 请求 LLM 能力、递归推理
+
+---
+
+# 消息格式
+
+MCP 完全采用 JSON-RPC 2.0 标准进行消息通信。
+
+## 请求消息
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "search",
+    "arguments": {
+      "query": "MCP protocol",
+      "limit": 10
+    }
+  }
+}
+```
+
+## 响应消息
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Search results..."
+      }
+    ]
+  }
+}
+```
+
+## 通知消息
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "notifications/resources/list_changed",
+  "params": {}
+}
+```
+
+## 错误响应
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "error": {
+    "code": -32600,
+    "message": "Invalid Request",
+    "data": {
+      "details": "Missing required parameter"
+    }
+  }
+}
+```
+
+## 标准错误码
+
+| 错误码 | 说明 |
+|--------|------|
+| -32700 | Parse error（解析错误） |
+| -32600 | Invalid Request（无效请求） |
+| -32601 | Method not found（方法不存在） |
+| -32602 | Invalid params（无效参数） |
+| -32603 | Internal error（内部错误） |
+
+---
+
+# 三大核心原语
+
+## Resources（资源）
+
+资源是应用驱动型原语，允许服务器通过标准化的 URI 方式向客户端公开数据和上下文。
+
+### 资源 URI 格式
+
+| 方案 | 用途 | 示例 |
+|------|------|------|
+| `https://` | Web 资源 | `https://api.example.com/data` |
+| `file://` | 文件系统资源 | `file:///project/src/main.rs` |
+| `git://` | Git 版本控制 | `git://repo/commit/abc123` |
+| 自定义 | 业务特定资源 | `database://table/users` |
+
+### 资源类型
+
+**文本资源：**
+```json
+{
+  "uri": "file:///example.txt",
+  "mimeType": "text/plain",
+  "text": "资源内容",
+  "name": "example.txt"
+}
+```
+
+**二进制资源：**
+```json
+{
+  "uri": "file:///image.png",
+  "mimeType": "image/png",
+  "blob": "base64-encoded-data",
+  "name": "image.png"
+}
+```
+
+### 资源操作
+
+**列表资源请求：**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "resources/list",
+  "params": {}
+}
+```
+
+**读取资源请求：**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "method": "resources/read",
+  "params": {
+    "uri": "file:///project/src/main.rs"
+  }
+}
+```
+
+**订阅资源更新：**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 3,
+  "method": "resources/subscribe",
+  "params": {
+    "uri": "file:///project/src/main.rs"
+  }
+}
+```
+
+---
+
+## Tools（工具）
+
+工具是模型驱动型原语，允许语言模型通过查询数据库、调用 API 或执行计算与外部系统交互。
+
+### 工具定义格式
+
+```json
+{
+  "name": "calculate_statistics",
+  "title": "数据统计计算",
+  "description": "计算数据集的统计信息",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "values": {
+        "type": "array",
+        "items": { "type": "number" },
+        "description": "要分析的数值数组"
+      }
+    },
+    "required": ["values"]
+  }
+}
+```
+
+### 工具调用
+
+**调用请求：**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "search_database",
+    "arguments": {
+      "query": "user_status = 'active'",
+      "limit": 50
+    }
+  }
+}
+```
+
+**调用响应：**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "搜索完成，找到 15 个结果..."
+      }
+    ],
+    "isError": false
+  }
+}
+```
+
+### 工具结果内容类型
+
+- **text**: 文本结果
+- **image**: 图像结果（Base64 编码）
+- **audio**: 音频结果（Base64 编码）
+- **resource_link**: 资源链接
+
+---
+
+## Prompts（提示）
+
+提示是用户驱动型原语，允许服务器向客户端公开模板化提示，用户可以明确选择使用。
+
+### 提示定义
+
+```json
+{
+  "name": "code_review",
+  "title": "代码审查请求",
+  "description": "要求语言模型分析代码质量",
+  "arguments": [
+    {
+      "name": "code",
+      "description": "要审查的代码片段",
+      "required": true
+    },
+    {
+      "name": "language",
+      "description": "编程语言",
+      "required": false
+    }
+  ]
+}
+```
+
+### 获取提示
+
+**请求：**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "prompts/get",
+  "params": {
+    "name": "code_review",
+    "arguments": {
+      "code": "def hello():\n    print('world')",
+      "language": "Python"
+    }
+  }
+}
+```
+
+**响应：**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "messages": [
+      {
+        "role": "user",
+        "content": {
+          "type": "text",
+          "text": "请审查以下 Python 代码..."
+        }
+      }
+    ]
+  }
+}
+```
+
+---
+
+## Sampling（采样）
+
+采样是服务器驱动的原语，允许服务器通过客户端请求 LLM 的采样，实现具有嵌套 LLM 调用的智能体行为。
+
+### 核心原则：人机回路
+
+- 用户必须能够拒绝采样请求
+- 应用应提供 UI 审查采样请求
+- 用户可以查看和编辑提示
+- 服务器从不需要 API 密钥
+
+### 采样请求
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "sampling/createMessage",
+  "params": {
+    "messages": [
+      {
+        "role": "user",
+        "content": {
+          "type": "text",
+          "text": "法国的首都是什么？"
+        }
+      }
+    ],
+    "maxTokens": 100,
+    "modelPreferences": {
+      "costPriority": 0.3,
+      "speedPriority": 0.5,
+      "intelligencePriority": 0.9
+    }
+  }
+}
+```
+
+### 采样响应
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "role": "assistant",
+    "content": {
+      "type": "text",
+      "text": "法国的首都是巴黎。"
+    },
+    "model": "claude-3-sonnet-20240307",
+    "stopReason": "endTurn"
+  }
+}
+```
+
+---
+
+# Python SDK
+
+## 安装
+
+```bash
+# 使用 uv（推荐）
+uv add "mcp[cli]"
+
+# 使用 pip
+pip install "mcp[cli]"
+```
+
+## FastMCP 框架
+
+FastMCP 是 MCP Python SDK 提供的高级 API，使用装饰器模式极大简化服务器开发。
+
+### 基础服务器结构
+
+```python
+from mcp.server.fastmcp import FastMCP
+
+# 创建 FastMCP 实例
+mcp = FastMCP("服务器名称")
+
+# 注册工具
+@mcp.tool()
+def my_tool(param: str) -> str:
+    """工具描述"""
+    return f"结果: {param}"
+
+# 注册资源
+@mcp.resource("uri-scheme://{param}")
+def my_resource(param: str) -> str:
+    """资源描述"""
+    return f"资源内容"
+
+# 注册提示
+@mcp.prompt()
+def my_prompt() -> str:
+    """提示描述"""
+    return "提示内容"
+
+# 启动服务器
+if __name__ == "__main__":
+    mcp.run(transport="stdio")
+```
+
+### 完整天气服务器示例
+
+```python
+#!/usr/bin/env python3
+import json
+import httpx
+from mcp.server.fastmcp import FastMCP
+
+mcp = FastMCP("Weather")
+
+@mcp.tool()
+async def get_alerts(state: str) -> str:
+    """
+    获取美国某州的天气警告
+
+    Args:
+        state: 美国州代码（如 NY, CA, TX）
+
+    Returns:
+        该州的活跃气象警告列表
+    """
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            f"https://api.weather.gov/alerts?area={state}",
+            headers={"User-Agent": "(WeatherMCP)"}
+        )
+        data = response.json()
+        features = data.get("features", [])
+
+        if not features:
+            return f"No active alerts for {state}"
+
+        return json.dumps({
+            "state": state,
+            "alert_count": len(features),
+            "alerts": [
+                {
+                    "title": f["properties"]["event"],
+                    "description": f["properties"]["headline"]
+                }
+                for f in features[:5]
+            ]
+        }, ensure_ascii=False)
+
+@mcp.tool()
+async def get_forecast(latitude: float, longitude: float) -> str:
+    """
+    获取特定位置的天气预报
+
+    Args:
+        latitude: 纬度
+        longitude: 经度
+
+    Returns:
+        7 天天气预报数据
+    """
+    async with httpx.AsyncClient() as client:
+        # 获取网格点
+        points_response = await client.get(
+            f"https://api.weather.gov/points/{latitude},{longitude}",
+            headers={"User-Agent": "(WeatherMCP)"}
+        )
+        points_data = points_response.json()
+        forecast_url = points_data["properties"]["forecast"]
+
+        # 获取预报
+        forecast_response = await client.get(
+            forecast_url,
+            headers={"User-Agent": "(WeatherMCP)"}
+        )
+        forecast_data = forecast_response.json()
+        periods = forecast_data["properties"]["periods"][:7]
+
+        return json.dumps({
+            "location": {"latitude": latitude, "longitude": longitude},
+            "forecast": [
+                {
+                    "day": p["name"],
+                    "temperature": p["temperature"],
+                    "description": p["shortForecast"]
+                }
+                for p in periods
+            ]
+        }, ensure_ascii=False)
+
+@mcp.resource("weather://metadata")
+def get_metadata() -> str:
+    """获取服务器元数据"""
+    return json.dumps({
+        "server": "Weather MCP",
+        "version": "1.0.0",
+        "api_source": "National Weather Service"
+    })
+
+@mcp.prompt()
+def weather_analysis_prompt(location: str) -> str:
+    """天气分析提示"""
+    return f"""你是一个天气专家。请分析 {location} 的天气数据，并提供：
+1. 当前天气状况
+2. 未来 7 天的趋势分析
+3. 可能的恶劣天气警告
+4. 相关的户外活动建议"""
+
+if __name__ == "__main__":
+    mcp.run(transport="stdio")
+```
+
+### 工具装饰器详解
+
+```python
+from typing import Optional, List, Dict
+from pydantic import BaseModel
+from mcp.server.fastmcp import FastMCP
+
+mcp = FastMCP("ToolsExample")
+
+# 基础工具
+@mcp.tool()
+def simple_tool(name: str, age: int = 0) -> str:
+    """简单工具示例"""
+    return f"Hello, {name}! Age: {age}"
+
+# 异步工具
+@mcp.tool()
+async def async_tool(url: str) -> str:
+    """异步工具示例"""
+    import httpx
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url)
+        return response.text
+
+# 使用 Pydantic 模型
+class UserRequest(BaseModel):
+    username: str
+    email: str
+    age: Optional[int] = None
+
+@mcp.tool()
+def create_user(user: UserRequest) -> Dict:
+    """使用 Pydantic 验证的工具"""
+    return {"status": "success", "user": user.dict()}
+
+# 复杂类型
+@mcp.tool()
+def process_items(
+    items: List[str],
+    options: Optional[Dict[str, bool]] = None
+) -> str:
+    """处理列表和字典"""
+    return f"Processed {len(items)} items"
+```
+
+### 资源装饰器详解
+
+```python
+from mcp.server.fastmcp import FastMCP
+
+mcp = FastMCP("ResourcesExample")
+
+# 静态资源
+@mcp.resource("greeting://hello")
+def hello_resource() -> str:
+    """静态问候资源"""
+    return "Hello from MCP!"
+
+# 参数化资源
+@mcp.resource("greeting://{name}")
+def personalized_greeting(name: str) -> str:
+    """个性化问候"""
+    return f"Hello, {name}!"
+
+# 多参数资源
+@mcp.resource("book:///{author}/{title}")
+def get_book_info(author: str, title: str) -> str:
+    """获取书籍信息"""
+    return f"Book: {title} by {author}"
+
+# 文件路径资源（支持嵌套路径）
+@mcp.resource("file:///{+path}")
+def read_file(path: str) -> str:
+    """读取文件（+ 允许路径中包含斜杠）"""
+    with open(path, 'r') as f:
+        return f.read()
+```
+
+### 提示装饰器详解
+
+```python
+from mcp.server.fastmcp import FastMCP
+
+mcp = FastMCP("PromptsExample")
+
+# 简单提示
+@mcp.prompt()
+def greeting() -> str:
+    """问候提示"""
+    return "请向用户提供友好的问候。"
+
+# 带参数的提示
+@mcp.prompt()
+def code_review(code: str, language: str = "python") -> str:
+    """代码审查提示"""
+    return f"""请审查以下 {language} 代码：
+
+```{language}
+{code}
+```
+
+提供以下方面的建议：
+1. 代码质量
+2. 性能优化
+3. 最佳实践"""
+
+# 动态提示
+@mcp.prompt()
+def dynamic_prompt() -> str:
+    """根据时间动态生成提示"""
+    import datetime
+    hour = datetime.datetime.now().hour
+
+    if 6 <= hour < 12:
+        greeting = "Good morning"
+    elif 12 <= hour < 18:
+        greeting = "Good afternoon"
+    else:
+        greeting = "Good evening"
+
+    return f"{greeting}! What can I help you with today?"
+```
+
+---
+
+# TypeScript SDK
+
+## 安装
+
+```bash
+npm install @modelcontextprotocol/sdk zod@3
+npm install -D typescript @types/node
+```
+
+## Package.json 配置
+
+```json
+{
+  "name": "mcp-server",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "build/index.js",
+  "scripts": {
+    "build": "tsc && chmod +x build/index.js",
+    "dev": "node build/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.24.3",
+    "zod": "^3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.9.3"
+  }
+}
+```
+
+## TypeScript 配置
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "strict": true,
+    "outDir": "./build",
+    "rootDir": "./src"
+  },
+  "include": ["src/**/*"]
+}
+```
+
+## 基础服务器示例
+
+```typescript
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { z } from "zod";
+
+// 创建服务器实例
+const server = new McpServer({
+  name: "weather-server",
+  version: "1.0.0",
+});
+
+// 定义输入验证 Schema
+const alertsSchema = {
+  state: z
+    .string()
+    .length(2)
+    .toUpperCase()
+    .describe("Two-letter US state code"),
+};
+
+const forecastSchema = {
+  latitude: z.number().min(-90).max(90).describe("Latitude"),
+  longitude: z.number().min(-180).max(180).describe("Longitude"),
+};
+
+// 注册工具
+server.registerTool(
+  "get_alerts",
+  {
+    description: "Get weather alerts for a US state",
+    inputSchema: z.object(alertsSchema),
+  },
+  async ({ state }) => {
+    const response = await fetch(
+      `https://api.weather.gov/alerts?area=${state}`,
+      { headers: { "User-Agent": "(WeatherMCP)" } }
+    );
+    const data = await response.json();
+
+    return {
+      content: [{
+        type: "text" as const,
+        text: JSON.stringify(data.features?.slice(0, 5) || [])
+      }],
+    };
+  }
+);
+
+server.registerTool(
+  "get_forecast",
+  {
+    description: "Get weather forecast for coordinates",
+    inputSchema: z.object(forecastSchema),
+  },
+  async ({ latitude, longitude }) => {
+    const pointsResponse = await fetch(
+      `https://api.weather.gov/points/${latitude},${longitude}`,
+      { headers: { "User-Agent": "(WeatherMCP)" } }
+    );
+    const pointsData = await pointsResponse.json();
+
+    const forecastResponse = await fetch(
+      pointsData.properties.forecast,
+      { headers: { "User-Agent": "(WeatherMCP)" } }
+    );
+    const forecastData = await forecastResponse.json();
+
+    return {
+      content: [{
+        type: "text" as const,
+        text: JSON.stringify(forecastData.properties.periods.slice(0, 5))
+      }],
+    };
+  }
+);
+
+// 注册资源
+server.registerResource(
+  "weather://",
+  {
+    uri: "weather://",
+    name: "Weather Information",
+    description: "Weather data and forecasts",
+  },
+  async () => ({
+    contents: [{
+      uri: "weather://",
+      mimeType: "text/plain",
+      text: "Weather resources available.",
+    }],
+  })
+);
+
+// 注册提示
+server.registerPrompt(
+  "weather_analysis",
+  {
+    description: "Analyze weather conditions",
+    arguments: [{
+      name: "condition",
+      description: "Weather condition to analyze",
+      required: true,
+    }],
+  },
+  async ({ condition }) => ({
+    messages: [{
+      role: "user" as const,
+      content: {
+        type: "text" as const,
+        text: `Analyze this weather condition: ${condition}`,
+      },
+    }],
+  })
+);
+
+// 启动服务器
+async function main() {
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+  console.error("Weather MCP Server running on stdio");
+}
+
+main().catch(console.error);
+```
+
+## Zod 参数验证
+
+```typescript
+import { z } from "zod";
+
+// 字符串验证
+const emailSchema = z.string().email().describe("Valid email address");
+
+// 数字验证
+const ageSchema = z.number().int().min(0).max(150).describe("Age");
+
+// 枚举验证
+const prioritySchema = z.enum(["low", "medium", "high"]);
+
+// 对象验证
+const userSchema = z.object({
+  name: z.string().min(1).max(100),
+  email: z.string().email(),
+  age: z.number().min(18),
+  address: z.object({
+    street: z.string(),
+    city: z.string(),
+    zipCode: z.string().regex(/^\d{5}$/),
+  }),
+});
+
+// 数组验证
+const tagsSchema = z.array(z.string()).min(1).max(10);
+
+// 联合类型
+const filterSchema = z.object({
+  field: z.string(),
+  operator: z.enum(["eq", "gt", "lt", "contains"]),
+  value: z.union([z.string(), z.number()]),
+});
+
+// 自定义验证
+const passwordSchema = z
+  .string()
+  .min(8)
+  .refine((pwd) => /[A-Z]/.test(pwd), "Must contain uppercase")
+  .refine((pwd) => /[0-9]/.test(pwd), "Must contain number");
+```
+
+---
+
+# 客户端开发
+
+## Python 客户端
+
+```python
+import asyncio
+from contextlib import AsyncExitStack
+from mcp import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
+from anthropic import Anthropic
+
+class MCPClient:
+    def __init__(self):
+        self.session = None
+        self.exit_stack = AsyncExitStack()
+        self.anthropic = Anthropic()
+
+    async def connect_to_server(self, server_script_path: str):
+        """连接到 MCP 服务器"""
+        is_python = server_script_path.endswith('.py')
+        command = "python" if is_python else "node"
+
+        server_params = StdioServerParameters(
+            command=command,
+            args=[server_script_path],
+            env=None
+        )
+
+        stdio_transport = await self.exit_stack.enter_async_context(
+            stdio_client(server_params)
+        )
+        self.stdio, self.write = stdio_transport
+
+        self.session = await self.exit_stack.enter_async_context(
+            ClientSession(self.stdio, self.write)
+        )
+        await self.session.initialize()
+
+        # 列出可用工具
+        response = await self.session.list_tools()
+        print(f"可用工具: {[tool.name for tool in response.tools]}")
+
+    async def call_tool(self, tool_name: str, tool_args: dict):
+        """调用工具"""
+        result = await self.session.call_tool(tool_name, tool_args)
+        return result
+
+    async def list_resources(self):
+        """列出资源"""
+        response = await self.session.list_resources()
+        return response.resources
+
+    async def read_resource(self, uri: str):
+        """读取资源"""
+        response = await self.session.read_resource(uri)
+        return response.contents
+
+    async def list_prompts(self):
+        """列出提示"""
+        response = await self.session.list_prompts()
+        return response.prompts
+
+    async def get_prompt(self, name: str, arguments: dict = None):
+        """获取提示"""
+        response = await self.session.get_prompt(name, arguments or {})
+        return response
+
+    async def process_query(self, query: str) -> str:
+        """处理用户查询，自动调用工具"""
+        messages = [{"role": "user", "content": query}]
+
+        # 获取可用工具
+        response = await self.session.list_tools()
+        available_tools = [
+            {
+                "name": tool.name,
+                "description": tool.description,
+                "input_schema": tool.inputSchema
+            }
+            for tool in response.tools
+        ]
+
+        # 调用 Claude
+        response = self.anthropic.messages.create(
+            model="claude-opus-4-20250805",
+            max_tokens=2048,
+            messages=messages,
+            tools=available_tools
+        )
+
+        final_text = []
+
+        for content in response.content:
+            if content.type == 'text':
+                final_text.append(content.text)
+            elif content.type == 'tool_use':
+                # 执行工具
+                result = await self.call_tool(content.name, content.input)
+                tool_result = result.content[0].text if result.content else ""
+
+                # 继续对话
+                messages.append({"role": "assistant", "content": [content]})
+                messages.append({
+                    "role": "user",
+                    "content": [{
+                        "type": "tool_result",
+                        "tool_use_id": content.id,
+                        "content": tool_result
+                    }]
+                })
+
+                # 获取最终响应
+                response = self.anthropic.messages.create(
+                    model="claude-opus-4-20250805",
+                    max_tokens=2048,
+                    messages=messages,
+                    tools=available_tools
+                )
+
+                for c in response.content:
+                    if c.type == 'text':
+                        final_text.append(c.text)
+
+        return "\n".join(final_text)
+
+    async def cleanup(self):
+        """清理资源"""
+        await self.exit_stack.aclose()
+
+# 使用示例
+async def main():
+    client = MCPClient()
+    await client.connect_to_server("./weather_server.py")
+
+    result = await client.process_query("What's the weather in New York?")
+    print(result)
+
+    await client.cleanup()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+## TypeScript 客户端
+
+```typescript
+import { Anthropic } from "@anthropic-ai/sdk";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+
+class MCPClient {
+  private mcp: Client;
+  private anthropic: Anthropic;
+  private transport: StdioClientTransport | null = null;
+  private tools: any[] = [];
+
+  constructor() {
+    this.anthropic = new Anthropic();
+    this.mcp = new Client({
+      name: "mcp-client",
+      version: "1.0.0",
+    });
+  }
+
+  async connectToServer(serverScriptPath: string): Promise<void> {
+    const isPy = serverScriptPath.endsWith(".py");
+    const command = isPy ? "python3" : process.execPath;
+
+    this.transport = new StdioClientTransport({
+      command,
+      args: [serverScriptPath],
+    });
+
+    await this.mcp.connect(this.transport);
+
+    const toolsResult = await this.mcp.listTools();
+    this.tools = toolsResult.tools.map((tool) => ({
+      name: tool.name,
+      description: tool.description,
+      input_schema: tool.inputSchema,
+    }));
+
+    console.log(`Connected. Tools: ${this.tools.map(t => t.name).join(", ")}`);
+  }
+
+  async callTool(toolName: string, toolArgs: Record<string, unknown>): Promise<string> {
+    const result = await this.mcp.callTool({
+      name: toolName,
+      arguments: toolArgs,
+    });
+
+    if (result.content && Array.isArray(result.content)) {
+      for (const content of result.content) {
+        if ("text" in content) {
+          return content.text;
+        }
+      }
+    }
+    return "";
+  }
+
+  async processQuery(query: string): Promise<string> {
+    const messages: any[] = [{ role: "user", content: query }];
+
+    let response = await this.anthropic.messages.create({
+      model: "claude-opus-4-20250805",
+      max_tokens: 2048,
+      messages,
+      tools: this.tools,
+    });
+
+    const finalText: string[] = [];
+
+    for (const content of response.content) {
+      if (content.type === "text") {
+        finalText.push(content.text);
+      } else if (content.type === "tool_use") {
+        const toolResult = await this.callTool(
+          content.name,
+          content.input as Record<string, unknown>
+        );
+
+        messages.push({ role: "assistant", content: [content] });
+        messages.push({
+          role: "user",
+          content: [{
+            type: "tool_result",
+            tool_use_id: content.id,
+            content: toolResult,
+          }],
+        });
+
+        response = await this.anthropic.messages.create({
+          model: "claude-opus-4-20250805",
+          max_tokens: 2048,
+          messages,
+          tools: this.tools,
+        });
+
+        for (const c of response.content) {
+          if (c.type === "text") {
+            finalText.push(c.text);
+          }
+        }
+      }
+    }
+
+    return finalText.join("\n");
+  }
+
+  async cleanup(): Promise<void> {
+    if (this.transport) {
+      await this.transport.close();
+    }
+  }
+}
+
+// 使用示例
+async function main() {
+  const client = new MCPClient();
+  await client.connectToServer("./weather_server.py");
+
+  const result = await client.processQuery("What's the weather in NYC?");
+  console.log(result);
+
+  await client.cleanup();
+}
+
+main().catch(console.error);
+```
+
+---
+
+# 客户端配置
+
+## Claude Desktop 配置
+
+### 配置文件位置
+
+| 操作系统 | 路径 |
+|---------|------|
+| macOS | `~/Library/Application Support/Claude/claude_desktop_config.json` |
+| Windows | `%APPDATA%\Claude\claude_desktop_config.json` |
+| Linux | `~/.config/Claude/claude_desktop_config.json` |
+
+### 配置示例
+
+```json
+{
+  "mcpServers": {
+    "weather": {
+      "command": "python3",
+      "args": ["/path/to/weather_server.py"],
+      "env": {
+        "WEATHER_API_KEY": "your-api-key"
+      }
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/Users/username/Documents"
+      ]
+    },
+    "database": {
+      "command": "node",
+      "args": ["/path/to/db-server.js"],
+      "env": {
+        "DB_HOST": "localhost",
+        "DB_PORT": "5432"
+      }
+    }
+  }
+}
+```
+
+### 配置字段说明
+
+| 字段 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `command` | string | ✓ | 启动服务器的命令 |
+| `args` | array | ✓ | 命令行参数 |
+| `env` | object | ✗ | 环境变量 |
+
+---
+
+# 传输层
+
+## Stdio 传输
+
+最常用的本地传输方式，通过标准输入输出通信。
+
+```
+客户端 ──启动进程──> MCP 服务器
+        ↓
+      stdin: 接收 JSON-RPC 请求
+      stdout: 发送 JSON-RPC 响应
+      stderr: 日志输出
+```
+
+**关键特性：**
+- 消息格式：JSON-RPC（UTF-8 编码）
+- 分隔符：换行符（\n）分隔消息
+- stdout 仅限 MCP 内容
+- stderr 可用于日志
+
+## HTTP with SSE 传输（已弃用）
+
+> **注意**：此传输方式在 2025-03-26 版本后已弃用，建议使用 [Streamable HTTP Transport](#streamable-http-transport流式-http-传输)。
+
+用于网络服务场景的传输方式。
+
+```
+客户端 ──POST──> [MCP 服务器]
+        ←──GET(SSE)──
+```
+
+**消息发送（POST）：**
+```http
+POST /mcp-endpoint HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer <token>
+
+{"jsonrpc":"2.0","id":1,"method":"tools/list"}
+```
+
+**消息接收（SSE）：**
+```http
+GET /mcp-endpoint HTTP/1.1
+Accept: text/event-stream
+
+HTTP/1.1 200 OK
+Content-Type: text/event-stream
+
+data: {"jsonrpc":"2.0","method":"notifications/message"}
+id: event-001
+```
+
+**会话管理：**
+- 通过 `Mcp-Session-Id` 头管理会话
+- 支持事件 ID 重放实现可恢复性
+- 会话失效返回 404
+
+## 传输层对比
+
+| 特性 | Stdio | HTTP with SSE |
+|------|-------|---------------|
+| 部署方式 | 子进程 | 独立服务器 |
+| 并发连接 | 单一 | 多个 |
+| 服务器推送 | ❌ | ✅ |
+| 会话管理 | N/A | ✅ |
+| 使用场景 | 本地开发 | 网络服务 |
+
+---
+
+# 安全机制
+
+## 授权与认证
+
+### OAuth 2.1 集成
+
+支持授权码流程和客户端凭证流程。
+
+**授权码流程配置：**
+```json
+{
+  "authorizationBaseUrl": "https://api.example.com",
+  "clientId": "mcp-client-12345",
+  "clientSecret": "secret-key",
+  "redirectUri": "http://localhost:8080/callback",
+  "scopes": ["read:resources", "execute:tools"],
+  "grantType": "authorization_code"
+}
+```
+
+### Bearer Token 使用
+
+```http
+POST /mcp-endpoint HTTP/1.1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
+Content-Type: application/json
+```
+
+### PKCE 强制实现
+
+```javascript
+const crypto = require('crypto');
+
+function generatePKCE() {
+  const codeVerifier = crypto.randomBytes(32).toString('base64url');
+  const codeChallenge = crypto
+    .createHash('sha256')
+    .update(codeVerifier)
+    .digest('base64url');
+
+  return { codeVerifier, codeChallenge };
+}
+```
+
+## 安全最佳实践
+
+### 输入验证
+
+```javascript
+const validateMCPRequest = (req, res, next) => {
+  const request = req.body;
+
+  if (!request.jsonrpc || request.jsonrpc !== '2.0') {
+    return res.status(400).json({
+      jsonrpc: "2.0",
+      error: { code: -32600, message: "Invalid Request" }
+    });
+  }
+
+  next();
+};
+```
+
+### 路径遍历防护
+
+```javascript
+const path = require('path');
+
+function validateFilePath(requestedPath, allowedRoots) {
+  const absolute = path.resolve(path.normalize(requestedPath));
+
+  for (const root of allowedRoots) {
+    if (absolute.startsWith(path.resolve(root))) {
+      return absolute;
+    }
+  }
+
+  throw new Error('Path not allowed');
+}
+```
+
+### 访问控制
+
+```javascript
+const rolePermissions = {
+  'admin': ['resources:*', 'tools:*', 'prompts:*'],
+  'user': ['resources:read', 'tools:call'],
+  'viewer': ['resources:list']
+};
+
+const checkPermission = (role, method) => {
+  const permissions = rolePermissions[role] || [];
+  return permissions.some(p =>
+    p === method || p.endsWith(':*') && method.startsWith(p.slice(0, -1))
+  );
+};
+```
+
+### 速率限制
+
+```javascript
+const rateLimit = require('express-rate-limit');
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: { error: '请求过于频繁' }
+});
+
+app.use('/mcp-endpoint', limiter);
+```
+
+## Roots（根目录）机制
+
+Roots 定义了客户端为服务器暴露的可访问文件系统边界。
+
+**客户端声明 roots 支持：**
+```json
+{
+  "capabilities": {
+    "roots": {
+      "listChanged": true
+    }
+  }
+}
+```
+
+**服务器查询 roots：**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "roots/list"
+}
+```
+
+**响应：**
+```json
+{
+  "result": {
+    "roots": [
+      {
+        "uri": "file:///home/user/projects",
+        "name": "Projects"
+      }
+    ]
+  }
+}
+```
+
+---
+
+# 生命周期
+
+## 初始化阶段
+
+```
+Client ──initialize──> Server
+       <──capabilities──
+       ──initialized──>
+```
+
+**初始化请求：**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "initialize",
+  "params": {
+    "protocolVersion": "2025-03-26",
+    "capabilities": {
+      "sampling": {},
+      "roots": { "listChanged": true }
+    },
+    "clientInfo": {
+      "name": "Claude Desktop",
+      "version": "1.0.0"
+    }
+  }
+}
+```
+
+**初始化响应：**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "protocolVersion": "2025-03-26",
+    "capabilities": {
+      "resources": { "subscribe": true },
+      "tools": {},
+      "prompts": {}
+    },
+    "serverInfo": {
+      "name": "Weather Server",
+      "version": "1.0.0"
+    }
+  }
+}
+```
+
+## 操作阶段
+
+- 资源操作：list, read, subscribe
+- 工具操作：list, call
+- 提示操作：list, get
+- 采样操作：createMessage
+
+## 关闭阶段
+
+```
+Client ──unsubscribe──> Server
+       ──close──>
+       <──closed──
+```
+
+---
+
+# 错误处理
+
+## 协议错误
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "error": {
+    "code": -32602,
+    "message": "Unknown tool: nonexistent_tool"
+  }
+}
+```
+
+## 工具执行错误
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "content": [{
+      "type": "text",
+      "text": "执行失败：数据库连接超时"
+    }],
+    "isError": true
+  }
+}
+```
+
+---
+
+# Elicitation（信息获取）
+
+Elicitation 是 MCP 的标准化机制，允许服务器通过客户端向用户请求额外信息。它支持两种模式：
+
+## 模式类型
+
+| 模式 | 用途 | 适用场景 |
+|------|------|----------|
+| **Form Mode** | 带内结构化数据收集 | 普通信息输入 |
+| **URL Mode** | 带外交互（外部 URL） | 敏感数据（OAuth、支付、API 密钥） |
+
+## 能力声明
+
+客户端在初始化时声明 Elicitation 支持：
+
+```json
+{
+  "capabilities": {
+    "elicitation": {
+      "form": {},
+      "url": {}
+    }
+  }
+}
+```
+
+## Form Mode（表单模式）
+
+**请求：**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "elicitation/create",
+  "params": {
+    "mode": "form",
+    "message": "请提供您的 GitHub 用户名",
+    "requestedSchema": {
+      "type": "object",
+      "properties": {
+        "username": {
+          "type": "string",
+          "description": "GitHub 用户名"
+        },
+        "email": {
+          "type": "string",
+          "format": "email"
+        }
+      },
+      "required": ["username"]
+    }
+  }
+}
+```
+
+**响应：**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "action": "accept",
+    "content": {
+      "username": "octocat",
+      "email": "octocat@github.com"
+    }
+  }
+}
+```
+
+## 支持的 Schema 类型
+
+```json
+// 字符串（支持 format: email, uri, date, date-time）
+{ "type": "string", "format": "email", "minLength": 5, "maxLength": 100 }
+
+// 数字
+{ "type": "number", "minimum": 0, "maximum": 150 }
+
+// 布尔
+{ "type": "boolean", "default": false }
+
+// 单选枚举
+{ "type": "string", "enum": ["选项A", "选项B", "选项C"] }
+
+// 多选枚举
+{ "type": "array", "items": { "type": "string", "enum": ["Red", "Green", "Blue"] } }
+```
+
+## URL Mode（URL 模式）
+
+用于敏感数据收集，让用户在浏览器中完成交互：
+
+**请求：**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 3,
+  "method": "elicitation/create",
+  "params": {
+    "mode": "url",
+    "elicitationId": "550e8400-e29b-41d4-a716-446655440000",
+    "url": "https://mcp.example.com/ui/set_api_key",
+    "message": "请提供您的 API 密钥以继续。"
+  }
+}
+```
+
+**完成通知：**
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "notifications/elicitation/complete",
+  "params": {
+    "elicitationId": "550e8400-e29b-41d4-a716-446655440000"
+  }
+}
+```
+
+## 响应动作类型
+
+| 动作 | 说明 | content 字段 |
+|------|------|--------------|
+| `accept` | 用户批准并提交 | Form 模式必需；URL 模式省略 |
+| `decline` | 用户明确拒绝 | 通常省略 |
+| `cancel` | 用户关闭未做选择 | 通常省略 |
+
+---
+
+# Tasks API（异步任务）
+
+Tasks API 是 MCP 2025-11-25 版本引入的实验性功能，支持 "call-now, fetch-later" 模式，用于耗时计算和批处理。
+
+## 任务状态生命周期
+
+```
+┌──────────┐
+│ working  │ ──→ input_required ──→ working
+└────┬─────┘              │
+     │                    │
+     ├──────────────────→ completed (终态)
+     ├──────────────────→ failed (终态)
+     └──────────────────→ cancelled (终态)
+```
+
+## 能力声明
+
+**服务器能力：**
+```json
+{
+  "capabilities": {
+    "tasks": {
+      "list": {},
+      "cancel": {},
+      "requests": {
+        "tools": { "call": {} }
+      }
+    }
+  }
+}
+```
+
+## 创建任务
+
+**请求（带 task 参数）：**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "get_weather",
+    "arguments": { "city": "New York" },
+    "task": { "ttl": 60000 }
+  }
+}
+```
+
+**响应（返回任务句柄）：**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "task": {
+      "taskId": "786512e2-9e0d-44bd-8f29-789f320fe840",
+      "status": "working",
+      "statusMessage": "操作正在进行中",
+      "createdAt": "2025-11-25T10:30:00Z",
+      "lastUpdatedAt": "2025-11-25T10:40:00Z",
+      "ttl": 60000,
+      "pollInterval": 5000
+    }
+  }
+}
+```
+
+## 获取任务状态
+
+**请求：**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 3,
+  "method": "tasks/get",
+  "params": {
+    "taskId": "786512e2-9e0d-44bd-8f29-789f320fe840"
+  }
+}
+```
+
+## 获取任务结果
+
+**请求：**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 4,
+  "method": "tasks/result",
+  "params": {
+    "taskId": "786512e2-9e0d-44bd-8f29-789f320fe840"
+  }
+}
+```
+
+**响应：**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 4,
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "纽约当前天气：\n温度：72°F\n天气：多云"
+      }
+    ],
+    "isError": false,
+    "_meta": {
+      "io.modelcontextprotocol/related-task": {
+        "taskId": "786512e2-9e0d-44bd-8f29-789f320fe840"
+      }
+    }
+  }
+}
+```
+
+## 任务列表
+
+**请求：**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 5,
+  "method": "tasks/list",
+  "params": { "cursor": "optional-cursor-value" }
+}
+```
+
+## 取消任务
+
+**请求：**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 6,
+  "method": "tasks/cancel",
+  "params": {
+    "taskId": "786512e2-9e0d-44bd-8f29-789f320fe840"
+  }
+}
+```
+
+## 任务状态通知
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "notifications/tasks/status",
+  "params": {
+    "taskId": "786512e2-9e0d-44bd-8f29-789f320fe840",
+    "status": "completed",
+    "createdAt": "2025-11-25T10:30:00Z",
+    "lastUpdatedAt": "2025-11-25T10:50:00Z"
+  }
+}
+```
+
+---
+
+# Streamable HTTP Transport（流式 HTTP 传输）
+
+Streamable HTTP 是 MCP 2025-03-26 版本引入的新传输方式，替代了旧版 HTTP+SSE，支持双向通信和会话管理。
+
+## 架构概述
+
+```
+客户端 ──POST──> [MCP 服务器]    发送 JSON-RPC 消息
+       <──SSE───               接收流式响应
+       ──GET───>               打开 SSE 流监听服务器消息
+       ──DELETE─>              终止会话
+```
+
+## 消息发送（POST）
+
+**请求：**
+```http
+POST /mcp HTTP/1.1
+Accept: application/json, text/event-stream
+Content-Type: application/json
+MCP-Session-Id: session-uuid-here
+MCP-Protocol-Version: 2025-11-25
+
+{
+  "jsonrpc": "2.0",
+  "id": "request-id",
+  "method": "tools/list"
+}
+```
+
+**响应类型：**
+
+| 输入类型 | Content-Type | 状态码 | 说明 |
+|---------|--------------|--------|------|
+| 通知/响应 | — | 202 Accepted | 无响应体 |
+| 请求 | application/json | 200 OK | 单个 JSON 对象 |
+| 请求 | text/event-stream | 200 OK | SSE 流 |
+
+## SSE 流式响应
+
+```http
+HTTP/1.1 200 OK
+Content-Type: text/event-stream
+Cache-Control: no-cache
+
+id: event-1
+data: {"jsonrpc":"2.0","result":{...}}
+
+id: event-2
+data: {"jsonrpc":"2.0","method":"notifications/message","params":{...}}
+```
+
+## 监听服务器消息（GET）
+
+```http
+GET /mcp HTTP/1.1
+Accept: text/event-stream
+MCP-Session-Id: session-uuid-here
+MCP-Protocol-Version: 2025-11-25
+```
+
+## 会话管理
+
+**初始化响应（服务器分配会话 ID）：**
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+MCP-Session-Id: 550e8400-e29b-41d4-a716-446655440000
+
+{
+  "jsonrpc": "2.0",
+  "id": "init-1",
+  "result": {
+    "protocolVersion": "2025-11-25",
+    "capabilities": {...}
+  }
+}
+```
+
+**会话终止（客户端发起）：**
+```http
+DELETE /mcp HTTP/1.1
+MCP-Session-Id: 550e8400-e29b-41d4-a716-446655440000
+MCP-Protocol-Version: 2025-11-25
+```
+
+**会话过期（服务器返回 404）：**
+```json
+{
+  "jsonrpc": "2.0",
+  "error": {
+    "code": -32000,
+    "message": "Session expired"
+  }
+}
+```
+
+## 断线重连
+
+客户端使用 `Last-Event-ID` 请求重放消息：
+
+```http
+GET /mcp HTTP/1.1
+Accept: text/event-stream
+MCP-Session-Id: session-uuid
+Last-Event-ID: stream-1-message-42
+```
+
+## 传输方式对比
+
+| 特性 | Stdio | Streamable HTTP |
+|------|-------|-----------------|
+| 初始化方式 | 子进程启动 | 独立服务器 |
+| 多客户端 | 每进程一个 | 多个（通过会话） |
+| 消息格式 | 换行分隔 JSON | HTTP POST/GET + SSE |
+| 会话管理 | 隐式 | 显式（可选） |
+| 断线重连 | 不支持 | 支持（通过事件 ID） |
+| 云部署 | 不适合 | 支持（Lambda 等） |
+
+---
+
+# Logging（日志记录）
+
+MCP 提供标准化的结构化日志消息机制，允许服务器向客户端发送日志。
+
+## 能力声明
+
+```json
+{
+  "capabilities": {
+    "logging": {}
+  }
+}
+```
+
+## 日志级别
+
+遵循 RFC 5424 syslog 严重级别：
+
+| 级别 | 说明 | 使用场景 |
+|------|------|----------|
+| debug | 详细调试信息 | 函数入口/出口 |
+| info | 一般信息 | 操作进度更新 |
+| notice | 正常但重要事件 | 配置变更 |
+| warning | 警告条件 | 已弃用功能使用 |
+| error | 错误条件 | 操作失败 |
+| critical | 严重条件 | 系统组件故障 |
+| alert | 需立即处理 | 数据损坏检测 |
+| emergency | 系统不可用 | 完全系统故障 |
+
+## 设置日志级别
+
+**请求：**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "logging/setLevel",
+  "params": {
+    "level": "info"
+  }
+}
+```
+
+## 日志消息通知
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "notifications/message",
+  "params": {
+    "level": "error",
+    "logger": "database",
+    "data": {
+      "error": "Connection failed",
+      "details": {
+        "host": "localhost",
+        "port": 5432
+      }
+    }
+  }
+}
+```
+
+---
+
+# Progress（进度报告）
+
+MCP 支持可选的进度跟踪，用于长时间运行的操作。
+
+## 请求中包含进度令牌
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "process_large_file",
+    "arguments": { "file": "data.csv" },
+    "_meta": {
+      "progressToken": "abc123"
+    }
+  }
+}
+```
+
+## 进度通知
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "notifications/progress",
+  "params": {
+    "progressToken": "abc123",
+    "progress": 50,
+    "total": 100,
+    "message": "正在处理数据..."
+  }
+}
+```
+
+## 字段说明
+
+| 字段 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| progressToken | string/integer | ✓ | 原始请求中的令牌 |
+| progress | number | ✓ | 当前进度（必须递增） |
+| total | number | ✗ | 总数（未知时可省略） |
+| message | string | ✗ | 人类可读的进度信息 |
+
+---
+
+# Cancellation（取消机制）
+
+MCP 支持可选的请求取消功能。
+
+## 取消通知
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "notifications/cancelled",
+  "params": {
+    "requestId": "123",
+    "reason": "用户请求取消"
+  }
+}
+```
+
+## 行为规则
+
+| 规则 | 说明 |
+|------|------|
+| 有效目标 | 只能取消之前发出且仍在进行的请求 |
+| 禁止取消 | `initialize` 请求不能被取消 |
+| 任务请求 | 对于任务增强请求，使用 `tasks/cancel` 替代 |
+| 接收方处理 | 应停止处理、释放资源、不发送响应 |
+| 竞态条件 | 双方必须优雅处理取消通知到达时机的竞态 |
+
+---
+
+# Pagination（分页）
+
+MCP 使用不透明游标分页处理大型结果集。
+
+## 支持分页的操作
+
+- `resources/list` — 列出资源
+- `resources/templates/list` — 列出资源模板
+- `prompts/list` — 列出提示
+- `tools/list` — 列出工具
+- `tasks/list` — 列出任务
+
+## 响应格式
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": "123",
+  "result": {
+    "resources": [...],
+    "nextCursor": "eyJwYWdlIjogM30="
+  }
+}
+```
+
+## 继续分页
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": "124",
+  "method": "resources/list",
+  "params": {
+    "cursor": "eyJwYWdlIjogMn0="
+  }
+}
+```
+
+## 注意事项
+
+- 游标是**不透明的**：客户端不应解析或修改
+- 缺少 `nextCursor` 表示已到达结果末尾
+- 无效游标返回错误码 `-32602`
+
+---
+
+# Completions（自动补全）
+
+MCP 提供提示和资源模板参数的自动补全建议。
+
+## 能力声明
+
+```json
+{
+  "capabilities": {
+    "completions": {}
+  }
+}
+```
+
+## 补全请求
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "completion/complete",
+  "params": {
+    "ref": {
+      "type": "ref/prompt",
+      "name": "code_review"
+    },
+    "argument": {
+      "name": "language",
+      "value": "py"
+    }
+  }
+}
+```
+
+## 补全响应
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "completion": {
+      "values": ["python", "pytorch", "pyside"],
+      "total": 10,
+      "hasMore": true
+    }
+  }
+}
+```
+
+## 上下文感知补全
+
+为多参数提示/资源提供先前参数值：
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "completion/complete",
+  "params": {
+    "ref": {
+      "type": "ref/prompt",
+      "name": "code_review"
+    },
+    "argument": {
+      "name": "framework",
+      "value": "fla"
+    },
+    "context": {
+      "arguments": {
+        "language": "python"
+      }
+    }
+  }
+}
+```
+
+## 引用类型
+
+| 类型 | 说明 | 示例 |
+|------|------|------|
+| ref/prompt | 按名称引用提示 | `{"type": "ref/prompt", "name": "code_review"}` |
+| ref/resource | 按 URI 引用资源 | `{"type": "ref/resource", "uri": "file:///{path}"}` |
+
+---
+
+# Tool Annotations（工具注解）
+
+工具注解是附加到 MCP 工具的元数据，用于向客户端传达工具的行为特征。
+
+## 四种提示注解
+
+| 注解 | 类型 | 说明 |
+|------|------|------|
+| **readOnlyHint** | boolean | 如果为 true，工具不修改其环境 |
+| **destructiveHint** | boolean | 如果为 true，工具可能执行破坏性更新 |
+| **idempotentHint** | boolean | 如果为 true，相同参数的重复调用没有额外影响 |
+| **openWorldHint** | boolean | 如果为 true，工具与外部实体交互 |
+
+## 注解示例
+
+```json
+{
+  "name": "delete_file",
+  "description": "删除指定文件",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "path": { "type": "string" }
+    },
+    "required": ["path"]
+  },
+  "annotations": {
+    "readOnlyHint": false,
+    "destructiveHint": true,
+    "idempotentHint": true,
+    "openWorldHint": false
+  }
+}
+```
+
+```json
+{
+  "name": "search_web",
+  "description": "搜索网络内容",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "query": { "type": "string" }
+    },
+    "required": ["query"]
+  },
+  "annotations": {
+    "readOnlyHint": true,
+    "openWorldHint": true
+  }
+}
+```
+
+## 注意事项
+
+- `destructiveHint` 和 `idempotentHint` 仅在 `readOnlyHint` 为 false 时有意义
+- **注解是提示**：客户端不应基于不受信任服务器的注解做出工具使用决策
+- 对于信任与安全，客户端必须将工具注解视为不可信，除非来自受信任的服务器
+
+---
+
+# 最佳实践
+
+## 服务器开发
+
+1. **日志使用 stderr**：stdout 仅用于 MCP 消息
+2. **完整的类型提示**：使用 Pydantic 或 Zod 验证
+3. **异步优先**：使用 async/await 处理 I/O
+4. **错误处理**：捕获并返回有意义的错误信息
+5. **资源清理**：实现优雅关闭
+
+## 客户端开发
+
+1. **连接复用**：重用客户端连接
+2. **超时处理**：为网络请求设置超时
+3. **重试机制**：实现指数退避重试
+4. **缓存策略**：缓存工具列表和资源
+
+## 安全实践
+
+1. **输入验证**：验证所有用户输入
+2. **最小权限**：只授予必要的文件系统权限
+3. **加密传输**：生产环境使用 HTTPS
+4. **审计日志**：记录所有敏感操作
+
+---
+
+# 参考资源
+
+## 官方资源
+
+- 官方文档：https://modelcontextprotocol.io
+- 最新规范（2025-11-25）：https://modelcontextprotocol.io/specification/2025-11-25
+- 历史规范（2025-03-26）：https://modelcontextprotocol.io/specification/2025-03-26
+- GitHub 组织：https://github.com/modelcontextprotocol
+
+## SDK
+
+- Python SDK：https://github.com/modelcontextprotocol/python-sdk
+- TypeScript SDK：https://github.com/modelcontextprotocol/typescript-sdk
+
+## 示例与社区
+
+- 官方服务器示例：https://github.com/modelcontextprotocol/servers
+- MCP 注册中心：https://registry.modelcontextprotocol.io
+- 官方博客：https://blog.modelcontextprotocol.io
+
+## 版本更新历史
+
+| 版本 | 发布日期 | 主要更新 |
+|------|----------|----------|
+| 2025-11-25 | 2025-11-25 | Tasks API、URL Mode Elicitation、Sampling with Tools、Extensions Framework |
+| 2025-06-18 | 2025-06-18 | Elicitation（Form Mode）、结构化工具输出、OAuth 增强 |
+| 2025-03-26 | 2025-03-26 | Streamable HTTP Transport 替代 HTTP+SSE |
+| 2024-11-05 | 2024-11-05 | 初始版本发布 |
