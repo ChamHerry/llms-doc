@@ -1,0 +1,4960 @@
+---
+url: 'https://cn.vuejs.org/ + https://element-plus.org/zh-CN/'
+description: Vue 3 + Element Plus 完整中文文档 - Vue 3 渐进式 JavaScript 框架与 Element Plus 企业级组件库完整指南
+---
+
+# Vue 3 + Element Plus 完整文档
+
+本文档整合了 Vue 3 核心框架和 Element Plus 组件库的完整使用指南，适用于构建现代化企业级 Web 应用程序。
+
+---
+
+# 第一部分：Vue 3 核心
+
+## 简介
+
+Vue.js 是一个渐进式 JavaScript 框架，用于构建用户界面。它被设计为可增量采用，可以轻松集成到现有项目中。
+
+### 核心特性
+
+- **响应式数据绑定**: 自动追踪依赖并更新 DOM
+- **组件化开发**: 可复用、可组合的 UI 组件
+- **虚拟 DOM**: 高效的渲染和更新机制
+- **组合式 API**: 更灵活的代码组织方式
+- **TypeScript 支持**: 完整的类型推导
+
+---
+
+## 快速开始
+
+### 环境要求
+
+- Node.js 版本 ^18.3.0 或 >=20.0.0
+- 推荐使用 Visual Studio Code + Vue Official 扩展
+
+### 创建项目
+
+```bash
+npm create vue@latest
+```
+
+该命令将启动官方脚手架工具，提供 TypeScript、Vue Router、Pinia 等可选功能。
+
+### 安装依赖并启动
+
+```bash
+cd your-project
+npm install
+npm run dev
+```
+
+### 通过 CDN 使用
+
+```html
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+```
+
+---
+
+## 响应式基础
+
+### Composition API - ref()
+
+```vue
+<script setup>
+import { ref } from 'vue'
+
+const count = ref(0)
+
+function increment() {
+  count.value++
+}
+</script>
+
+<template>
+  <button @click="increment">
+    {{ count }}
+  </button>
+</template>
+```
+
+### Options API - data()
+
+```js
+export default {
+  data() {
+    return {
+      count: 1
+    }
+  },
+  mounted() {
+    console.log(this.count) // => 1
+    this.count = 2
+  }
+}
+```
+
+### reactive() 响应式对象
+
+```js
+import { reactive } from 'vue'
+
+const state = reactive({ count: 0 })
+
+function increment() {
+  state.count++
+}
+```
+
+**注意**: 不要替换 reactive 对象的引用，这会导致响应性丢失：
+
+```js
+// 错误示例
+let state = reactive({ count: 0 })
+state = reactive({ count: 1 }) // 丢失响应性
+```
+
+### ref vs reactive 对比
+
+| 特性 | ref | reactive |
+|------|-----|----------|
+| 基本类型 | 支持 | 不支持 |
+| 对象类型 | 支持 | 支持 |
+| 解构保持响应性 | 需要 toRefs | 不支持 |
+| 访问方式 | .value | 直接访问 |
+| 模板自动解包 | 支持 | 支持 |
+
+---
+
+## 计算属性 computed
+
+```vue
+<script setup>
+import { ref, computed } from 'vue'
+
+const firstName = ref('John')
+const lastName = ref('Doe')
+
+// 只读计算属性
+const fullName = computed(() => {
+  return firstName.value + ' ' + lastName.value
+})
+
+// 可写计算属性
+const fullNameWritable = computed({
+  get() {
+    return firstName.value + ' ' + lastName.value
+  },
+  set(newValue) {
+    [firstName.value, lastName.value] = newValue.split(' ')
+  }
+})
+</script>
+```
+
+---
+
+## 侦听器 watch 和 watchEffect
+
+### watch - 侦听特定数据源
+
+```js
+import { ref, watch } from 'vue'
+
+const question = ref('')
+const answer = ref('Questions usually contain a question mark.')
+
+// 侦听单个 ref
+watch(question, async (newQuestion, oldQuestion) => {
+  if (newQuestion.includes('?')) {
+    answer.value = 'Thinking...'
+    try {
+      const res = await fetch('https://yesno.wtf/api')
+      answer.value = (await res.json()).answer
+    } catch (error) {
+      answer.value = 'Error! Could not reach the API.'
+    }
+  }
+})
+
+// 侦听多个数据源
+const x = ref(0)
+const y = ref(0)
+
+watch([x, () => y.value], ([newX, newY]) => {
+  console.log(`x is ${newX} and y is ${newY}`)
+})
+```
+
+### watchEffect - 自动追踪依赖
+
+```js
+import { ref, watchEffect } from 'vue'
+
+const count = ref(0)
+
+watchEffect(() => {
+  console.log(`count is: ${count.value}`)
+})
+// 立即执行一次，之后每当 count 变化时执行
+```
+
+### 停止侦听器
+
+```js
+const stop = watchEffect(() => {})
+
+// 当不再需要此侦听器时:
+stop()
+```
+
+### 侦听器选项
+
+```js
+watch(source, callback, {
+  immediate: true,  // 立即执行
+  deep: true,       // 深度侦听
+  flush: 'post',    // 在 DOM 更新后执行
+  once: true        // 只触发一次 (3.4+)
+})
+```
+
+---
+
+## 模板语法
+
+### 文本插值
+
+```vue-html
+<span>Message: {{ msg }}</span>
+```
+
+### 原始 HTML
+
+```vue-html
+<span v-html="rawHtml"></span>
+```
+
+### 属性绑定 v-bind
+
+```vue-html
+<!-- 完整写法 -->
+<div v-bind:id="dynamicId"></div>
+
+<!-- 简写 -->
+<div :id="dynamicId"></div>
+
+<!-- 动态属性名 -->
+<a :[attributeName]="url"> ... </a>
+
+<!-- 布尔属性 -->
+<button :disabled="isButtonDisabled">Button</button>
+
+<!-- 绑定多个属性 -->
+<div v-bind="objectOfAttrs"></div>
+```
+
+### 事件绑定 v-on
+
+```vue-html
+<!-- 完整写法 -->
+<a v-on:click="doSomething"> ... </a>
+
+<!-- 简写 -->
+<a @click="doSomething"> ... </a>
+
+<!-- 动态事件名 -->
+<a @[eventName]="doSomething"> ... </a>
+
+<!-- 事件修饰符 -->
+<form @submit.prevent="onSubmit">...</form>
+<a @click.stop="doThis"></a>
+<input @keyup.enter="onEnter">
+```
+
+### 条件渲染
+
+```vue-html
+<p v-if="type === 'A'">A</p>
+<p v-else-if="type === 'B'">B</p>
+<p v-else>Not A/B</p>
+
+<!-- v-show 只是切换 display -->
+<p v-show="ok">Hello!</p>
+```
+
+**v-if vs v-show**:
+- `v-if` 是真正的条件渲染，切换时会销毁和重建元素
+- `v-show` 元素始终存在，只是切换 CSS display 属性
+- 频繁切换用 `v-show`，条件很少改变用 `v-if`
+
+### 列表渲染
+
+```vue-html
+<ul>
+  <li v-for="item in items" :key="item.id">
+    {{ item.text }}
+  </li>
+</ul>
+
+<!-- 带索引 -->
+<li v-for="(item, index) in items" :key="item.id">
+  {{ index }} - {{ item.text }}
+</li>
+
+<!-- 遍历对象 -->
+<li v-for="(value, key, index) in object" :key="key">
+  {{ index }}. {{ key }}: {{ value }}
+</li>
+
+<!-- 范围遍历 -->
+<span v-for="n in 10" :key="n">{{ n }}</span>
+```
+
+### 双向绑定 v-model
+
+```vue-html
+<input v-model="text">
+
+<!-- 修饰符 -->
+<input v-model.lazy="msg">    <!-- 在 change 事件后更新 -->
+<input v-model.number="age">  <!-- 转换为数字 -->
+<input v-model.trim="msg">    <!-- 去除首尾空格 -->
+```
+
+---
+
+## 组件基础
+
+### 定义组件
+
+```vue
+<!-- 单文件组件 (SFC) -->
+<script setup>
+import { ref } from 'vue'
+
+const count = ref(0)
+</script>
+
+<template>
+  <button @click="count++">Count: {{ count }}</button>
+</template>
+
+<style scoped>
+button { font-weight: bold; }
+</style>
+```
+
+### Props
+
+```vue
+<script setup>
+// 声明 props
+const props = defineProps({
+  title: String,
+  likes: {
+    type: Number,
+    default: 0,
+    required: false,
+    validator: (value) => value >= 0
+  }
+})
+
+// TypeScript 类型声明
+interface Props {
+  title: string
+  likes?: number
+}
+const props = defineProps<Props>()
+
+// 带默认值的 TypeScript 声明
+const props = withDefaults(defineProps<Props>(), {
+  likes: 0
+})
+</script>
+```
+
+### Emits 事件
+
+```vue
+<script setup>
+// 声明事件
+const emit = defineEmits(['change', 'update'])
+
+// TypeScript 类型声明
+const emit = defineEmits<{
+  (e: 'change', id: number): void
+  (e: 'update', value: string): void
+}>()
+
+// 触发事件
+function handleClick() {
+  emit('change', 123)
+}
+</script>
+```
+
+### 插槽 Slots
+
+```vue
+<!-- 子组件 BaseLayout.vue -->
+<template>
+  <div class="container">
+    <header>
+      <slot name="header"></slot>
+    </header>
+    <main>
+      <slot></slot> <!-- 默认插槽 -->
+    </main>
+    <footer>
+      <slot name="footer"></slot>
+    </footer>
+  </div>
+</template>
+
+<!-- 父组件使用 -->
+<BaseLayout>
+  <template #header>
+    <h1>Page Title</h1>
+  </template>
+
+  <p>Main content goes here</p>
+
+  <template #footer>
+    <p>Footer content</p>
+  </template>
+</BaseLayout>
+```
+
+### 作用域插槽
+
+```vue
+<!-- 子组件 -->
+<template>
+  <ul>
+    <li v-for="item in items" :key="item.id">
+      <slot :item="item" :index="index"></slot>
+    </li>
+  </ul>
+</template>
+
+<!-- 父组件 -->
+<MyList :items="items">
+  <template #default="{ item, index }">
+    {{ index }}: {{ item.name }}
+  </template>
+</MyList>
+```
+
+---
+
+## 生命周期钩子
+
+```vue
+<script setup>
+import {
+  onBeforeMount,
+  onMounted,
+  onBeforeUpdate,
+  onUpdated,
+  onBeforeUnmount,
+  onUnmounted,
+  onActivated,
+  onDeactivated,
+  onErrorCaptured
+} from 'vue'
+
+onMounted(() => {
+  console.log('组件已挂载')
+})
+
+onUpdated(() => {
+  console.log('组件已更新')
+})
+
+onUnmounted(() => {
+  console.log('组件已卸载')
+})
+</script>
+```
+
+### 生命周期顺序
+
+1. setup()
+2. onBeforeMount
+3. onMounted
+4. onBeforeUpdate (数据变化时)
+5. onUpdated
+6. onBeforeUnmount
+7. onUnmounted
+
+---
+
+## 依赖注入 Provide / Inject
+
+```vue
+<!-- 祖先组件 -->
+<script setup>
+import { provide, ref } from 'vue'
+
+const theme = ref('dark')
+provide('theme', theme)
+
+// 提供只读值
+provide('readOnlyTheme', readonly(theme))
+</script>
+
+<!-- 后代组件 -->
+<script setup>
+import { inject } from 'vue'
+
+const theme = inject('theme')
+const theme = inject('theme', 'light') // 带默认值
+</script>
+```
+
+---
+
+## 组合式函数 (Composables)
+
+```js
+// composables/useMouse.js
+import { ref, onMounted, onUnmounted } from 'vue'
+
+export function useMouse() {
+  const x = ref(0)
+  const y = ref(0)
+
+  function update(event) {
+    x.value = event.pageX
+    y.value = event.pageY
+  }
+
+  onMounted(() => window.addEventListener('mousemove', update))
+  onUnmounted(() => window.removeEventListener('mousemove', update))
+
+  return { x, y }
+}
+
+// 在组件中使用
+<script setup>
+import { useMouse } from './composables/useMouse'
+
+const { x, y } = useMouse()
+</script>
+```
+
+### 异步组合式函数
+
+```js
+// composables/useFetch.js
+import { ref, watchEffect, toValue } from 'vue'
+
+export function useFetch(url) {
+  const data = ref(null)
+  const error = ref(null)
+  const loading = ref(false)
+
+  watchEffect(async () => {
+    loading.value = true
+    data.value = null
+    error.value = null
+
+    try {
+      const res = await fetch(toValue(url))
+      data.value = await res.json()
+    } catch (e) {
+      error.value = e
+    } finally {
+      loading.value = false
+    }
+  })
+
+  return { data, error, loading }
+}
+```
+
+---
+
+## 自定义指令
+
+```vue
+<script setup>
+// 局部指令
+const vFocus = {
+  mounted: (el) => el.focus()
+}
+
+// 完整指令钩子
+const vMyDirective = {
+  created(el, binding, vnode) {},
+  beforeMount(el, binding, vnode) {},
+  mounted(el, binding, vnode) {},
+  beforeUpdate(el, binding, vnode, prevVnode) {},
+  updated(el, binding, vnode, prevVnode) {},
+  beforeUnmount(el, binding, vnode) {},
+  unmounted(el, binding, vnode) {}
+}
+</script>
+
+<template>
+  <input v-focus>
+  <div v-my-directive:arg.modifier="value"></div>
+</template>
+```
+
+### 全局注册指令
+
+```js
+app.directive('focus', {
+  mounted(el) {
+    el.focus()
+  }
+})
+```
+
+---
+
+## 异步组件
+
+```js
+import { defineAsyncComponent } from 'vue'
+
+// 基础用法
+const AsyncComp = defineAsyncComponent(() =>
+  import('./components/MyComponent.vue')
+)
+
+// 高级用法
+const AsyncCompWithOptions = defineAsyncComponent({
+  loader: () => import('./Foo.vue'),
+  loadingComponent: LoadingComponent,
+  errorComponent: ErrorComponent,
+  delay: 200,        // 显示加载组件前的延迟
+  timeout: 3000,     // 超时时间
+  suspensible: false
+})
+```
+
+---
+
+# 第二部分：Element Plus 组件库
+
+## 简介
+
+Element Plus 是一套为设计师和开发者准备的基于 Vue 3 的桌面端组件库，提供了丰富的 UI 组件来高效构建应用程序。
+
+### 设计原则
+
+1. **一致性 (Consistency)**: 与现实生活的流程、逻辑保持一致，遵循用户习惯的语言和概念
+2. **反馈 (Feedback)**: 通过界面样式和交互动效让用户可以清晰地感知自己的操作
+3. **效率 (Efficiency)**: 简化流程，让用户的操作更简单直接
+4. **可控 (Controllability)**: 用户可自由操作，包括撤销、回退等
+
+---
+
+## 安装和配置
+
+### 包管理器安装
+
+```bash
+# npm
+npm install element-plus
+
+# yarn
+yarn add element-plus
+
+# pnpm
+pnpm install element-plus
+```
+
+### 完整引入
+
+```typescript
+// main.ts
+import { createApp } from 'vue'
+import ElementPlus from 'element-plus'
+import 'element-plus/dist/index.css'
+import App from './App.vue'
+
+const app = createApp(App)
+app.use(ElementPlus)
+app.mount('#app')
+```
+
+### 按需引入 (推荐)
+
+安装插件：
+
+```bash
+npm install -D unplugin-vue-components unplugin-auto-import
+```
+
+**Vite 配置**:
+
+```typescript
+// vite.config.ts
+import { defineConfig } from 'vite'
+import AutoImport from 'unplugin-auto-import/vite'
+import Components from 'unplugin-vue-components/vite'
+import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
+
+export default defineConfig({
+  plugins: [
+    AutoImport({
+      resolvers: [ElementPlusResolver()],
+    }),
+    Components({
+      resolvers: [ElementPlusResolver()],
+    }),
+  ],
+})
+```
+
+**Webpack 配置**:
+
+```javascript
+// webpack.config.js
+const AutoImport = require('unplugin-auto-import/webpack')
+const Components = require('unplugin-vue-components/webpack')
+const { ElementPlusResolver } = require('unplugin-vue-components/resolvers')
+
+module.exports = {
+  plugins: [
+    AutoImport({
+      resolvers: [ElementPlusResolver()],
+    }),
+    Components({
+      resolvers: [ElementPlusResolver()],
+    }),
+  ],
+}
+```
+
+### TypeScript 支持
+
+```json
+// tsconfig.json
+{
+  "compilerOptions": {
+    "types": ["element-plus/global"]
+  }
+}
+```
+
+---
+
+## 全局配置
+
+### ConfigProvider 组件
+
+```vue
+<template>
+  <el-config-provider :locale="zhCn" :size="size" :z-index="zIndex">
+    <App />
+  </el-config-provider>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import zhCn from 'element-plus/es/locale/lang/zh-cn'
+
+const size = ref('default')  // 'large' | 'default' | 'small'
+const zIndex = ref(2000)
+</script>
+```
+
+### 全局属性
+
+```typescript
+app.use(ElementPlus, {
+  size: 'small',
+  zIndex: 3000
+})
+```
+
+---
+
+## 基础组件
+
+### Button 按钮
+
+```vue
+<template>
+  <!-- 基础按钮 -->
+  <el-button>默认按钮</el-button>
+  <el-button type="primary">主要按钮</el-button>
+  <el-button type="success">成功按钮</el-button>
+  <el-button type="info">信息按钮</el-button>
+  <el-button type="warning">警告按钮</el-button>
+  <el-button type="danger">危险按钮</el-button>
+
+  <!-- 朴素按钮 -->
+  <el-button plain>朴素按钮</el-button>
+  <el-button type="primary" plain>主要按钮</el-button>
+
+  <!-- 圆角和圆形 -->
+  <el-button round>圆角按钮</el-button>
+  <el-button :icon="Search" circle />
+
+  <!-- 禁用和加载 -->
+  <el-button disabled>禁用按钮</el-button>
+  <el-button type="primary" loading>加载中</el-button>
+
+  <!-- 不同尺寸 -->
+  <el-button size="large">大型按钮</el-button>
+  <el-button>默认按钮</el-button>
+  <el-button size="small">小型按钮</el-button>
+
+  <!-- 文字按钮 -->
+  <el-button text>文字按钮</el-button>
+  <el-button link>链接按钮</el-button>
+
+  <!-- 按钮组 -->
+  <el-button-group>
+    <el-button type="primary" :icon="ArrowLeft">上一页</el-button>
+    <el-button type="primary">下一页<el-icon class="el-icon--right"><ArrowRight /></el-icon></el-button>
+  </el-button-group>
+</template>
+
+<script setup>
+import { Search, ArrowLeft, ArrowRight } from '@element-plus/icons-vue'
+</script>
+```
+
+**Button 属性**:
+
+| 属性 | 说明 | 类型 | 默认值 |
+|------|------|------|--------|
+| type | 类型 | 'primary'/'success'/'warning'/'danger'/'info' | — |
+| size | 尺寸 | 'large'/'default'/'small' | — |
+| plain | 是否朴素按钮 | boolean | false |
+| text | 是否文字按钮 | boolean | false |
+| link | 是否链接按钮 | boolean | false |
+| round | 是否圆角按钮 | boolean | false |
+| circle | 是否圆形按钮 | boolean | false |
+| loading | 是否加载中 | boolean | false |
+| disabled | 是否禁用 | boolean | false |
+| icon | 图标组件 | string/Component | — |
+| color | 自定义颜色 | string | — |
+
+### Icon 图标
+
+```bash
+# 安装图标库
+npm install @element-plus/icons-vue
+```
+
+```vue
+<template>
+  <!-- 直接使用 -->
+  <el-icon><Edit /></el-icon>
+  <el-icon :size="20" color="red"><Delete /></el-icon>
+
+  <!-- 与按钮配合 -->
+  <el-button type="primary" :icon="Edit">编辑</el-button>
+</template>
+
+<script setup>
+import { Edit, Delete } from '@element-plus/icons-vue'
+</script>
+```
+
+### Link 链接
+
+```vue
+<template>
+  <el-link href="https://element-plus.org" target="_blank">默认链接</el-link>
+  <el-link type="primary">主要链接</el-link>
+  <el-link type="success">成功链接</el-link>
+  <el-link type="warning">警告链接</el-link>
+  <el-link type="danger">危险链接</el-link>
+  <el-link type="info">信息链接</el-link>
+  <el-link :underline="false">无下划线</el-link>
+  <el-link disabled>禁用链接</el-link>
+  <el-link :icon="Edit">带图标</el-link>
+</template>
+```
+
+---
+
+## 布局组件
+
+### Container 布局容器
+
+```vue
+<template>
+  <el-container>
+    <el-header>Header</el-header>
+    <el-container>
+      <el-aside width="200px">Aside</el-aside>
+      <el-main>Main</el-main>
+    </el-container>
+    <el-footer>Footer</el-footer>
+  </el-container>
+</template>
+
+<style scoped>
+.el-header, .el-footer {
+  background-color: #b3c0d1;
+  line-height: 60px;
+}
+.el-aside {
+  background-color: #d3dce6;
+}
+.el-main {
+  background-color: #e9eef3;
+}
+</style>
+```
+
+### Layout 栅格布局
+
+```vue
+<template>
+  <!-- 基础布局 -->
+  <el-row>
+    <el-col :span="24"><div class="grid-content">24</div></el-col>
+  </el-row>
+  <el-row>
+    <el-col :span="12"><div class="grid-content">12</div></el-col>
+    <el-col :span="12"><div class="grid-content">12</div></el-col>
+  </el-row>
+
+  <!-- 分栏间隔 -->
+  <el-row :gutter="20">
+    <el-col :span="6"><div class="grid-content">6</div></el-col>
+    <el-col :span="6"><div class="grid-content">6</div></el-col>
+    <el-col :span="6"><div class="grid-content">6</div></el-col>
+    <el-col :span="6"><div class="grid-content">6</div></el-col>
+  </el-row>
+
+  <!-- 分栏偏移 -->
+  <el-row>
+    <el-col :span="6" :offset="6"><div class="grid-content">6 offset-6</div></el-col>
+  </el-row>
+
+  <!-- 对齐方式 -->
+  <el-row justify="center" align="middle">
+    <el-col :span="6"><div class="grid-content">居中</div></el-col>
+  </el-row>
+
+  <!-- 响应式布局 -->
+  <el-row :gutter="10">
+    <el-col :xs="8" :sm="6" :md="4" :lg="3" :xl="1">
+      <div class="grid-content">响应式</div>
+    </el-col>
+  </el-row>
+</template>
+```
+
+### Space 间距
+
+```vue
+<template>
+  <el-space wrap>
+    <el-card v-for="i in 3" :key="i">
+      卡片 {{ i }}
+    </el-card>
+  </el-space>
+
+  <!-- 间距大小 -->
+  <el-space :size="20">
+    <el-button>按钮1</el-button>
+    <el-button>按钮2</el-button>
+  </el-space>
+
+  <!-- 垂直布局 -->
+  <el-space direction="vertical" fill>
+    <el-card>卡片1</el-card>
+    <el-card>卡片2</el-card>
+  </el-space>
+</template>
+```
+
+---
+
+## 表单组件
+
+### Form 表单
+
+```vue
+<template>
+  <el-form
+    ref="formRef"
+    :model="form"
+    :rules="rules"
+    label-width="100px"
+    label-position="right"
+    size="default"
+  >
+    <el-form-item label="活动名称" prop="name">
+      <el-input v-model="form.name" />
+    </el-form-item>
+
+    <el-form-item label="活动区域" prop="region">
+      <el-select v-model="form.region" placeholder="请选择活动区域">
+        <el-option label="区域一" value="shanghai" />
+        <el-option label="区域二" value="beijing" />
+      </el-select>
+    </el-form-item>
+
+    <el-form-item label="活动时间" required>
+      <el-col :span="11">
+        <el-form-item prop="date1">
+          <el-date-picker v-model="form.date1" type="date" placeholder="选择日期" />
+        </el-form-item>
+      </el-col>
+      <el-col :span="2" class="text-center">-</el-col>
+      <el-col :span="11">
+        <el-form-item prop="date2">
+          <el-time-picker v-model="form.date2" placeholder="选择时间" />
+        </el-form-item>
+      </el-col>
+    </el-form-item>
+
+    <el-form-item label="即时配送" prop="delivery">
+      <el-switch v-model="form.delivery" />
+    </el-form-item>
+
+    <el-form-item label="活动性质" prop="type">
+      <el-checkbox-group v-model="form.type">
+        <el-checkbox value="美食/餐厅线上活动" name="type">美食/餐厅线上活动</el-checkbox>
+        <el-checkbox value="地推活动" name="type">地推活动</el-checkbox>
+        <el-checkbox value="线下主题活动" name="type">线下主题活动</el-checkbox>
+      </el-checkbox-group>
+    </el-form-item>
+
+    <el-form-item label="特殊资源" prop="resource">
+      <el-radio-group v-model="form.resource">
+        <el-radio value="线上品牌商赞助">线上品牌商赞助</el-radio>
+        <el-radio value="线下场地免费">线下场地免费</el-radio>
+      </el-radio-group>
+    </el-form-item>
+
+    <el-form-item label="活动形式" prop="desc">
+      <el-input v-model="form.desc" type="textarea" />
+    </el-form-item>
+
+    <el-form-item>
+      <el-button type="primary" @click="submitForm(formRef)">提交</el-button>
+      <el-button @click="resetForm(formRef)">重置</el-button>
+    </el-form-item>
+  </el-form>
+</template>
+
+<script setup lang="ts">
+import { reactive, ref } from 'vue'
+import type { FormInstance, FormRules } from 'element-plus'
+
+const formRef = ref<FormInstance>()
+
+const form = reactive({
+  name: '',
+  region: '',
+  date1: '',
+  date2: '',
+  delivery: false,
+  type: [],
+  resource: '',
+  desc: ''
+})
+
+const rules = reactive<FormRules>({
+  name: [
+    { required: true, message: '请输入活动名称', trigger: 'blur' },
+    { min: 3, max: 5, message: '长度在 3 到 5 个字符', trigger: 'blur' }
+  ],
+  region: [
+    { required: true, message: '请选择活动区域', trigger: 'change' }
+  ],
+  date1: [
+    { type: 'date', required: true, message: '请选择日期', trigger: 'change' }
+  ],
+  type: [
+    { type: 'array', required: true, message: '请至少选择一个活动性质', trigger: 'change' }
+  ],
+  resource: [
+    { required: true, message: '请选择活动资源', trigger: 'change' }
+  ],
+  desc: [
+    { required: true, message: '请填写活动形式', trigger: 'blur' }
+  ]
+})
+
+const submitForm = async (formEl: FormInstance | undefined) => {
+  if (!formEl) return
+  await formEl.validate((valid, fields) => {
+    if (valid) {
+      console.log('提交成功!')
+    } else {
+      console.log('验证失败', fields)
+    }
+  })
+}
+
+const resetForm = (formEl: FormInstance | undefined) => {
+  if (!formEl) return
+  formEl.resetFields()
+}
+</script>
+```
+
+**Form 属性**:
+
+| 属性 | 说明 | 类型 | 默认值 |
+|------|------|------|--------|
+| model | 表单数据对象 | object | — |
+| rules | 表单验证规则 | object | — |
+| inline | 行内表单模式 | boolean | false |
+| label-position | 标签位置 | 'left'/'right'/'top' | right |
+| label-width | 标签宽度 | string/number | — |
+| size | 尺寸 | 'large'/'default'/'small' | — |
+| disabled | 禁用表单 | boolean | false |
+| scroll-to-error | 验证失败滚动到错误项 | boolean | false |
+
+**Form 方法**:
+
+| 方法名 | 说明 |
+|--------|------|
+| validate | 对整个表单进行验证 |
+| validateField | 对指定字段进行验证 |
+| resetFields | 重置表单到初始值 |
+| clearValidate | 清除验证结果 |
+| scrollToField | 滚动到指定字段 |
+
+### Input 输入框
+
+```vue
+<template>
+  <!-- 基础用法 -->
+  <el-input v-model="input" placeholder="请输入内容" />
+
+  <!-- 禁用和清空 -->
+  <el-input v-model="input" disabled />
+  <el-input v-model="input" clearable />
+
+  <!-- 密码框 -->
+  <el-input v-model="password" type="password" show-password />
+
+  <!-- 带图标 -->
+  <el-input v-model="input" :prefix-icon="Search" />
+  <el-input v-model="input" :suffix-icon="Calendar" />
+
+  <!-- 文本域 -->
+  <el-input
+    v-model="textarea"
+    type="textarea"
+    :rows="4"
+    placeholder="请输入内容"
+  />
+
+  <!-- 自适应高度 -->
+  <el-input
+    v-model="textarea"
+    type="textarea"
+    :autosize="{ minRows: 2, maxRows: 4 }"
+  />
+
+  <!-- 复合型输入框 -->
+  <el-input v-model="input" placeholder="请输入内容">
+    <template #prepend>Http://</template>
+    <template #append>.com</template>
+  </el-input>
+
+  <!-- 字数统计 -->
+  <el-input
+    v-model="input"
+    maxlength="30"
+    show-word-limit
+  />
+
+  <!-- 尺寸 -->
+  <el-input v-model="input" size="large" />
+  <el-input v-model="input" />
+  <el-input v-model="input" size="small" />
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import { Search, Calendar } from '@element-plus/icons-vue'
+
+const input = ref('')
+const password = ref('')
+const textarea = ref('')
+</script>
+```
+
+### Select 选择器
+
+```vue
+<template>
+  <!-- 基础选择 -->
+  <el-select v-model="value" placeholder="请选择">
+    <el-option
+      v-for="item in options"
+      :key="item.value"
+      :label="item.label"
+      :value="item.value"
+    />
+  </el-select>
+
+  <!-- 多选 -->
+  <el-select v-model="multiValue" multiple placeholder="请选择">
+    <el-option
+      v-for="item in options"
+      :key="item.value"
+      :label="item.label"
+      :value="item.value"
+    />
+  </el-select>
+
+  <!-- 多选折叠标签 -->
+  <el-select v-model="multiValue" multiple collapse-tags collapse-tags-tooltip>
+    <el-option
+      v-for="item in options"
+      :key="item.value"
+      :label="item.label"
+      :value="item.value"
+    />
+  </el-select>
+
+  <!-- 可搜索 -->
+  <el-select v-model="value" filterable placeholder="请选择">
+    <el-option
+      v-for="item in options"
+      :key="item.value"
+      :label="item.label"
+      :value="item.value"
+    />
+  </el-select>
+
+  <!-- 远程搜索 -->
+  <el-select
+    v-model="value"
+    filterable
+    remote
+    :remote-method="remoteMethod"
+    :loading="loading"
+    placeholder="请输入关键词"
+  >
+    <el-option
+      v-for="item in remoteOptions"
+      :key="item.value"
+      :label="item.label"
+      :value="item.value"
+    />
+  </el-select>
+
+  <!-- 创建新条目 -->
+  <el-select
+    v-model="value"
+    filterable
+    allow-create
+    default-first-option
+    placeholder="请选择或输入"
+  >
+    <el-option
+      v-for="item in options"
+      :key="item.value"
+      :label="item.label"
+      :value="item.value"
+    />
+  </el-select>
+
+  <!-- 分组 -->
+  <el-select v-model="value" placeholder="请选择">
+    <el-option-group
+      v-for="group in groupOptions"
+      :key="group.label"
+      :label="group.label"
+    >
+      <el-option
+        v-for="item in group.options"
+        :key="item.value"
+        :label="item.label"
+        :value="item.value"
+      />
+    </el-option-group>
+  </el-select>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+
+const value = ref('')
+const multiValue = ref([])
+const loading = ref(false)
+const remoteOptions = ref([])
+
+const options = [
+  { value: 'option1', label: '选项1' },
+  { value: 'option2', label: '选项2' },
+  { value: 'option3', label: '选项3' }
+]
+
+const groupOptions = [
+  {
+    label: '热门城市',
+    options: [
+      { value: 'Shanghai', label: '上海' },
+      { value: 'Beijing', label: '北京' }
+    ]
+  },
+  {
+    label: '城市名',
+    options: [
+      { value: 'Chengdu', label: '成都' },
+      { value: 'Shenzhen', label: '深圳' }
+    ]
+  }
+]
+
+const remoteMethod = (query) => {
+  if (query) {
+    loading.value = true
+    setTimeout(() => {
+      loading.value = false
+      remoteOptions.value = options.filter(item =>
+        item.label.toLowerCase().includes(query.toLowerCase())
+      )
+    }, 200)
+  } else {
+    remoteOptions.value = []
+  }
+}
+</script>
+```
+
+### DatePicker 日期选择器
+
+```vue
+<template>
+  <!-- 选择日 -->
+  <el-date-picker
+    v-model="date"
+    type="date"
+    placeholder="选择日期"
+  />
+
+  <!-- 选择周 -->
+  <el-date-picker
+    v-model="week"
+    type="week"
+    format="[Week] ww"
+    placeholder="选择周"
+  />
+
+  <!-- 选择月 -->
+  <el-date-picker
+    v-model="month"
+    type="month"
+    placeholder="选择月"
+  />
+
+  <!-- 选择年 -->
+  <el-date-picker
+    v-model="year"
+    type="year"
+    placeholder="选择年"
+  />
+
+  <!-- 多选日期 -->
+  <el-date-picker
+    v-model="dates"
+    type="dates"
+    placeholder="选择多个日期"
+  />
+
+  <!-- 日期范围 -->
+  <el-date-picker
+    v-model="dateRange"
+    type="daterange"
+    range-separator="至"
+    start-placeholder="开始日期"
+    end-placeholder="结束日期"
+  />
+
+  <!-- 月份范围 -->
+  <el-date-picker
+    v-model="monthRange"
+    type="monthrange"
+    range-separator="至"
+    start-placeholder="开始月份"
+    end-placeholder="结束月份"
+  />
+
+  <!-- 日期时间 -->
+  <el-date-picker
+    v-model="datetime"
+    type="datetime"
+    placeholder="选择日期时间"
+  />
+
+  <!-- 日期时间范围 -->
+  <el-date-picker
+    v-model="datetimeRange"
+    type="datetimerange"
+    range-separator="至"
+    start-placeholder="开始日期"
+    end-placeholder="结束日期"
+  />
+
+  <!-- 自定义格式 -->
+  <el-date-picker
+    v-model="date"
+    type="date"
+    format="YYYY/MM/DD"
+    value-format="YYYY-MM-DD"
+    placeholder="选择日期"
+  />
+
+  <!-- 快捷选项 -->
+  <el-date-picker
+    v-model="dateRange"
+    type="daterange"
+    :shortcuts="shortcuts"
+    placeholder="选择日期范围"
+  />
+</template>
+
+<script setup>
+import { ref } from 'vue'
+
+const date = ref('')
+const week = ref('')
+const month = ref('')
+const year = ref('')
+const dates = ref([])
+const dateRange = ref([])
+const monthRange = ref([])
+const datetime = ref('')
+const datetimeRange = ref([])
+
+const shortcuts = [
+  {
+    text: '最近一周',
+    value: () => {
+      const end = new Date()
+      const start = new Date()
+      start.setTime(start.getTime() - 3600 * 1000 * 24 * 7)
+      return [start, end]
+    }
+  },
+  {
+    text: '最近一个月',
+    value: () => {
+      const end = new Date()
+      const start = new Date()
+      start.setMonth(start.getMonth() - 1)
+      return [start, end]
+    }
+  },
+  {
+    text: '最近三个月',
+    value: () => {
+      const end = new Date()
+      const start = new Date()
+      start.setMonth(start.getMonth() - 3)
+      return [start, end]
+    }
+  }
+]
+</script>
+```
+
+### 其他表单组件
+
+```vue
+<template>
+  <!-- Radio 单选框 -->
+  <el-radio-group v-model="radio">
+    <el-radio value="1">备选项1</el-radio>
+    <el-radio value="2">备选项2</el-radio>
+  </el-radio-group>
+
+  <el-radio-group v-model="radio">
+    <el-radio-button value="1">备选项1</el-radio-button>
+    <el-radio-button value="2">备选项2</el-radio-button>
+  </el-radio-group>
+
+  <!-- Checkbox 多选框 -->
+  <el-checkbox-group v-model="checkList">
+    <el-checkbox value="A">选项A</el-checkbox>
+    <el-checkbox value="B">选项B</el-checkbox>
+    <el-checkbox value="C">选项C</el-checkbox>
+  </el-checkbox-group>
+
+  <!-- Switch 开关 -->
+  <el-switch v-model="switchValue" />
+  <el-switch
+    v-model="switchValue"
+    active-text="开启"
+    inactive-text="关闭"
+  />
+  <el-switch
+    v-model="switchValue"
+    active-color="#13ce66"
+    inactive-color="#ff4949"
+  />
+
+  <!-- Slider 滑块 -->
+  <el-slider v-model="sliderValue" />
+  <el-slider v-model="sliderValue" :step="10" show-stops />
+  <el-slider v-model="rangeValue" range :max="10" />
+
+  <!-- Rate 评分 -->
+  <el-rate v-model="rateValue" />
+  <el-rate v-model="rateValue" :colors="['#99A9BF', '#F7BA2A', '#FF9900']" />
+  <el-rate v-model="rateValue" allow-half />
+
+  <!-- ColorPicker 颜色选择器 -->
+  <el-color-picker v-model="color" />
+  <el-color-picker v-model="color" show-alpha />
+
+  <!-- Transfer 穿梭框 -->
+  <el-transfer v-model="transferValue" :data="transferData" />
+
+  <!-- Upload 上传 -->
+  <el-upload
+    action="https://run.mocky.io/v3/9d059bf9-4660-45f2-925d-ce80ad6c4d15"
+    :on-success="handleSuccess"
+    :on-error="handleError"
+    :before-upload="beforeUpload"
+  >
+    <el-button type="primary">点击上传</el-button>
+    <template #tip>
+      <div class="el-upload__tip">只能上传 jpg/png 文件，且不超过 500kb</div>
+    </template>
+  </el-upload>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+
+const radio = ref('1')
+const checkList = ref(['A'])
+const switchValue = ref(true)
+const sliderValue = ref(50)
+const rangeValue = ref([4, 8])
+const rateValue = ref(3)
+const color = ref('#409EFF')
+const transferValue = ref([])
+
+const transferData = [
+  { key: 1, label: '备选项1' },
+  { key: 2, label: '备选项2' },
+  { key: 3, label: '备选项3' }
+]
+</script>
+```
+
+---
+
+## 数据展示组件
+
+### Table 表格
+
+```vue
+<template>
+  <el-table :data="tableData" style="width: 100%">
+    <el-table-column prop="date" label="日期" width="180" />
+    <el-table-column prop="name" label="姓名" width="180" />
+    <el-table-column prop="address" label="地址" />
+  </el-table>
+</template>
+
+<script setup>
+const tableData = [
+  { date: '2024-01-01', name: '张三', address: '北京市朝阳区' },
+  { date: '2024-01-02', name: '李四', address: '上海市浦东新区' },
+  { date: '2024-01-03', name: '王五', address: '广州市天河区' }
+]
+</script>
+```
+
+**带边框和斑马纹**:
+
+```vue
+<el-table :data="tableData" border stripe>
+  <el-table-column prop="date" label="日期" />
+  <el-table-column prop="name" label="姓名" />
+  <el-table-column prop="address" label="地址" />
+</el-table>
+```
+
+**固定表头和列**:
+
+```vue
+<el-table :data="tableData" height="250" border>
+  <el-table-column fixed prop="date" label="日期" width="150" />
+  <el-table-column prop="name" label="姓名" width="120" />
+  <el-table-column prop="province" label="省份" width="120" />
+  <el-table-column prop="city" label="市区" width="120" />
+  <el-table-column prop="address" label="地址" width="600" />
+  <el-table-column fixed="right" label="操作" width="120">
+    <template #default="scope">
+      <el-button link type="primary" @click="handleClick(scope.row)">查看</el-button>
+      <el-button link type="primary">编辑</el-button>
+    </template>
+  </el-table-column>
+</el-table>
+```
+
+**多选表格**:
+
+```vue
+<template>
+  <el-table
+    ref="multipleTableRef"
+    :data="tableData"
+    @selection-change="handleSelectionChange"
+  >
+    <el-table-column type="selection" width="55" />
+    <el-table-column prop="date" label="日期" />
+    <el-table-column prop="name" label="姓名" />
+    <el-table-column prop="address" label="地址" />
+  </el-table>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+
+const multipleTableRef = ref()
+const multipleSelection = ref([])
+
+const handleSelectionChange = (val) => {
+  multipleSelection.value = val
+}
+
+const toggleSelection = (rows) => {
+  if (rows) {
+    rows.forEach((row) => {
+      multipleTableRef.value.toggleRowSelection(row, undefined)
+    })
+  } else {
+    multipleTableRef.value.clearSelection()
+  }
+}
+</script>
+```
+
+**排序和筛选**:
+
+```vue
+<el-table :data="tableData" @sort-change="handleSortChange">
+  <el-table-column prop="date" label="日期" sortable />
+  <el-table-column
+    prop="name"
+    label="姓名"
+    :filters="[
+      { text: '张三', value: '张三' },
+      { text: '李四', value: '李四' }
+    ]"
+    :filter-method="filterHandler"
+  />
+  <el-table-column prop="address" label="地址" />
+</el-table>
+
+<script setup>
+const handleSortChange = ({ column, prop, order }) => {
+  console.log(column, prop, order)
+}
+
+const filterHandler = (value, row, column) => {
+  const property = column['property']
+  return row[property] === value
+}
+</script>
+```
+
+**展开行**:
+
+```vue
+<el-table :data="tableData">
+  <el-table-column type="expand">
+    <template #default="props">
+      <div>
+        <p>州: {{ props.row.state }}</p>
+        <p>城市: {{ props.row.city }}</p>
+        <p>地址: {{ props.row.address }}</p>
+        <p>邮编: {{ props.row.zip }}</p>
+      </div>
+    </template>
+  </el-table-column>
+  <el-table-column prop="date" label="日期" />
+  <el-table-column prop="name" label="姓名" />
+</el-table>
+```
+
+**树形数据**:
+
+```vue
+<el-table
+  :data="treeData"
+  row-key="id"
+  :tree-props="{ children: 'children', hasChildren: 'hasChildren' }"
+>
+  <el-table-column prop="date" label="日期" />
+  <el-table-column prop="name" label="姓名" />
+  <el-table-column prop="address" label="地址" />
+</el-table>
+
+<script setup>
+const treeData = [
+  {
+    id: 1,
+    date: '2024-01-01',
+    name: '张三',
+    address: '北京市',
+    children: [
+      { id: 2, date: '2024-01-02', name: '张三-1', address: '北京市朝阳区' },
+      { id: 3, date: '2024-01-03', name: '张三-2', address: '北京市海淀区' }
+    ]
+  }
+]
+</script>
+```
+
+**自定义列模板**:
+
+```vue
+<el-table :data="tableData">
+  <el-table-column label="日期">
+    <template #default="scope">
+      <el-icon><timer /></el-icon>
+      <span style="margin-left: 10px">{{ scope.row.date }}</span>
+    </template>
+  </el-table-column>
+  <el-table-column label="姓名">
+    <template #default="scope">
+      <el-popover effect="light" trigger="hover" placement="top" width="auto">
+        <template #default>
+          <div>name: {{ scope.row.name }}</div>
+          <div>address: {{ scope.row.address }}</div>
+        </template>
+        <template #reference>
+          <el-tag>{{ scope.row.name }}</el-tag>
+        </template>
+      </el-popover>
+    </template>
+  </el-table-column>
+  <el-table-column label="操作">
+    <template #default="scope">
+      <el-button size="small" @click="handleEdit(scope.$index, scope.row)">编辑</el-button>
+      <el-button size="small" type="danger" @click="handleDelete(scope.$index, scope.row)">删除</el-button>
+    </template>
+  </el-table-column>
+</el-table>
+```
+
+### Tree 树形控件
+
+```vue
+<template>
+  <!-- 基础用法 -->
+  <el-tree :data="treeData" :props="defaultProps" @node-click="handleNodeClick" />
+
+  <!-- 复选框 -->
+  <el-tree
+    ref="treeRef"
+    :data="treeData"
+    :props="defaultProps"
+    show-checkbox
+    node-key="id"
+    :default-expanded-keys="[2, 3]"
+    :default-checked-keys="[5]"
+  />
+
+  <!-- 懒加载 -->
+  <el-tree
+    :props="lazyProps"
+    lazy
+    :load="loadNode"
+    show-checkbox
+  />
+
+  <!-- 可拖拽 -->
+  <el-tree
+    :data="treeData"
+    :props="defaultProps"
+    draggable
+    :allow-drop="allowDrop"
+    :allow-drag="allowDrag"
+  />
+
+  <!-- 自定义节点 -->
+  <el-tree :data="treeData" :props="defaultProps">
+    <template #default="{ node, data }">
+      <span class="custom-tree-node">
+        <span>{{ node.label }}</span>
+        <span>
+          <a @click="append(data)">添加</a>
+          <a @click="remove(node, data)">删除</a>
+        </span>
+      </span>
+    </template>
+  </el-tree>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+
+const treeRef = ref()
+
+const treeData = [
+  {
+    id: 1,
+    label: '一级 1',
+    children: [
+      {
+        id: 4,
+        label: '二级 1-1',
+        children: [
+          { id: 9, label: '三级 1-1-1' },
+          { id: 10, label: '三级 1-1-2' }
+        ]
+      }
+    ]
+  },
+  {
+    id: 2,
+    label: '一级 2',
+    children: [
+      { id: 5, label: '二级 2-1' },
+      { id: 6, label: '二级 2-2' }
+    ]
+  },
+  {
+    id: 3,
+    label: '一级 3',
+    children: [
+      { id: 7, label: '二级 3-1' },
+      { id: 8, label: '二级 3-2' }
+    ]
+  }
+]
+
+const defaultProps = {
+  children: 'children',
+  label: 'label'
+}
+
+const handleNodeClick = (data) => {
+  console.log(data)
+}
+
+// 获取选中节点
+const getCheckedNodes = () => {
+  console.log(treeRef.value.getCheckedNodes())
+}
+
+// 懒加载
+const lazyProps = {
+  label: 'name',
+  children: 'zones',
+  isLeaf: 'leaf'
+}
+
+const loadNode = (node, resolve) => {
+  if (node.level === 0) {
+    return resolve([{ name: 'region' }])
+  }
+  setTimeout(() => {
+    const data = [
+      { name: `zone${node.level}` },
+      { name: `zone${node.level + 1}`, leaf: true }
+    ]
+    resolve(data)
+  }, 500)
+}
+</script>
+```
+
+### Pagination 分页
+
+```vue
+<template>
+  <!-- 基础分页 -->
+  <el-pagination
+    layout="prev, pager, next"
+    :total="100"
+  />
+
+  <!-- 带背景色 -->
+  <el-pagination
+    background
+    layout="prev, pager, next"
+    :total="100"
+  />
+
+  <!-- 小型分页 -->
+  <el-pagination
+    small
+    layout="prev, pager, next"
+    :total="100"
+  />
+
+  <!-- 完整功能 -->
+  <el-pagination
+    v-model:current-page="currentPage"
+    v-model:page-size="pageSize"
+    :page-sizes="[10, 20, 30, 50]"
+    :total="400"
+    layout="total, sizes, prev, pager, next, jumper"
+    @size-change="handleSizeChange"
+    @current-change="handleCurrentChange"
+  />
+</template>
+
+<script setup>
+import { ref } from 'vue'
+
+const currentPage = ref(1)
+const pageSize = ref(10)
+
+const handleSizeChange = (val) => {
+  console.log(`每页 ${val} 条`)
+}
+
+const handleCurrentChange = (val) => {
+  console.log(`当前页: ${val}`)
+}
+</script>
+```
+
+### 其他数据展示组件
+
+```vue
+<template>
+  <!-- Tag 标签 -->
+  <el-tag>标签一</el-tag>
+  <el-tag type="success">标签二</el-tag>
+  <el-tag type="info">标签三</el-tag>
+  <el-tag type="warning">标签四</el-tag>
+  <el-tag type="danger">标签五</el-tag>
+  <el-tag closable @close="handleClose">可关闭</el-tag>
+
+  <!-- Badge 徽章 -->
+  <el-badge :value="12" class="item">
+    <el-button>评论</el-button>
+  </el-badge>
+  <el-badge :value="200" :max="99" class="item">
+    <el-button>评论</el-button>
+  </el-badge>
+  <el-badge value="new" class="item">
+    <el-button>评论</el-button>
+  </el-badge>
+  <el-badge is-dot class="item">
+    <el-button>消息</el-button>
+  </el-badge>
+
+  <!-- Progress 进度条 -->
+  <el-progress :percentage="50" />
+  <el-progress :percentage="100" :format="format" />
+  <el-progress :percentage="100" status="success" />
+  <el-progress :percentage="100" status="warning" />
+  <el-progress :percentage="50" status="exception" />
+  <el-progress type="circle" :percentage="75" />
+  <el-progress type="dashboard" :percentage="80" />
+
+  <!-- Result 结果 -->
+  <el-result icon="success" title="成功提示" sub-title="请根据提示进行操作">
+    <template #extra>
+      <el-button type="primary">返回</el-button>
+    </template>
+  </el-result>
+
+  <!-- Empty 空状态 -->
+  <el-empty description="暂无数据" />
+
+  <!-- Descriptions 描述列表 -->
+  <el-descriptions title="用户信息" :column="3" border>
+    <el-descriptions-item label="用户名">kooriookami</el-descriptions-item>
+    <el-descriptions-item label="手机号">18100000000</el-descriptions-item>
+    <el-descriptions-item label="居住地">苏州市</el-descriptions-item>
+    <el-descriptions-item label="备注">
+      <el-tag size="small">学校</el-tag>
+    </el-descriptions-item>
+    <el-descriptions-item label="联系地址">
+      江苏省苏州市吴中区吴中大道 1188 号
+    </el-descriptions-item>
+  </el-descriptions>
+
+  <!-- Avatar 头像 -->
+  <el-avatar :size="50" :src="circleUrl" />
+  <el-avatar shape="square" :size="50" :src="squareUrl" />
+  <el-avatar :size="60" :icon="UserFilled" />
+
+  <!-- Card 卡片 -->
+  <el-card class="box-card">
+    <template #header>
+      <div class="card-header">
+        <span>卡片名称</span>
+        <el-button class="button" text>操作按钮</el-button>
+      </div>
+    </template>
+    <div v-for="o in 4" :key="o" class="text item">{{ '列表内容 ' + o }}</div>
+  </el-card>
+
+  <!-- Carousel 走马灯 -->
+  <el-carousel height="200px">
+    <el-carousel-item v-for="item in 4" :key="item">
+      <h3>{{ item }}</h3>
+    </el-carousel-item>
+  </el-carousel>
+
+  <!-- Collapse 折叠面板 -->
+  <el-collapse v-model="activeNames" @change="handleChange">
+    <el-collapse-item title="一致性" name="1">
+      <div>与现实生活一致：与现实生活的流程、逻辑保持一致</div>
+    </el-collapse-item>
+    <el-collapse-item title="反馈" name="2">
+      <div>控制反馈：通过界面样式和交互动效让用户可以清晰的感知自己的操作</div>
+    </el-collapse-item>
+    <el-collapse-item title="效率" name="3">
+      <div>简化流程：设计简洁直观的操作流程</div>
+    </el-collapse-item>
+  </el-collapse>
+
+  <!-- Timeline 时间线 -->
+  <el-timeline>
+    <el-timeline-item timestamp="2018/4/12" placement="top">
+      <el-card>
+        <h4>更新 Github 模板</h4>
+        <p>张三 提交于 2018/4/12 20:46</p>
+      </el-card>
+    </el-timeline-item>
+    <el-timeline-item timestamp="2018/4/3" placement="top">
+      <el-card>
+        <h4>更新 Github 模板</h4>
+        <p>李四 提交于 2018/4/3 20:46</p>
+      </el-card>
+    </el-timeline-item>
+  </el-timeline>
+
+  <!-- Image 图片 -->
+  <el-image style="width: 100px; height: 100px" :src="url" fit="cover" />
+  <el-image :src="url" :preview-src-list="srcList" />
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import { UserFilled } from '@element-plus/icons-vue'
+
+const activeNames = ref(['1'])
+</script>
+```
+
+---
+
+## 导航组件
+
+### Menu 菜单
+
+```vue
+<template>
+  <!-- 水平菜单 -->
+  <el-menu
+    :default-active="activeIndex"
+    mode="horizontal"
+    @select="handleSelect"
+  >
+    <el-menu-item index="1">处理中心</el-menu-item>
+    <el-sub-menu index="2">
+      <template #title>工作区</template>
+      <el-menu-item index="2-1">选项1</el-menu-item>
+      <el-menu-item index="2-2">选项2</el-menu-item>
+      <el-sub-menu index="2-4">
+        <template #title>选项4</template>
+        <el-menu-item index="2-4-1">选项4-1</el-menu-item>
+        <el-menu-item index="2-4-2">选项4-2</el-menu-item>
+      </el-sub-menu>
+    </el-sub-menu>
+    <el-menu-item index="3" disabled>信息</el-menu-item>
+    <el-menu-item index="4">订单</el-menu-item>
+  </el-menu>
+
+  <!-- 垂直菜单 -->
+  <el-menu
+    default-active="1"
+    class="el-menu-vertical"
+    :collapse="isCollapse"
+    @open="handleOpen"
+    @close="handleClose"
+  >
+    <el-menu-item index="1">
+      <el-icon><document /></el-icon>
+      <span>导航一</span>
+    </el-menu-item>
+    <el-sub-menu index="2">
+      <template #title>
+        <el-icon><location /></el-icon>
+        <span>导航二</span>
+      </template>
+      <el-menu-item index="2-1">选项1</el-menu-item>
+      <el-menu-item index="2-2">选项2</el-menu-item>
+    </el-sub-menu>
+    <el-menu-item index="3" disabled>
+      <el-icon><setting /></el-icon>
+      <span>导航三</span>
+    </el-menu-item>
+  </el-menu>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import { Document, Location, Setting } from '@element-plus/icons-vue'
+
+const activeIndex = ref('1')
+const isCollapse = ref(false)
+
+const handleSelect = (key, keyPath) => {
+  console.log(key, keyPath)
+}
+
+const handleOpen = (key, keyPath) => {
+  console.log(key, keyPath)
+}
+
+const handleClose = (key, keyPath) => {
+  console.log(key, keyPath)
+}
+</script>
+```
+
+### Tabs 标签页
+
+```vue
+<template>
+  <!-- 基础用法 -->
+  <el-tabs v-model="activeName" @tab-click="handleClick">
+    <el-tab-pane label="用户管理" name="first">用户管理</el-tab-pane>
+    <el-tab-pane label="配置管理" name="second">配置管理</el-tab-pane>
+    <el-tab-pane label="角色管理" name="third">角色管理</el-tab-pane>
+    <el-tab-pane label="定时任务" name="fourth">定时任务</el-tab-pane>
+  </el-tabs>
+
+  <!-- 卡片风格 -->
+  <el-tabs v-model="activeName" type="card">
+    <el-tab-pane label="用户管理" name="first">用户管理</el-tab-pane>
+    <el-tab-pane label="配置管理" name="second">配置管理</el-tab-pane>
+  </el-tabs>
+
+  <!-- 带边框卡片 -->
+  <el-tabs v-model="activeName" type="border-card">
+    <el-tab-pane label="用户管理" name="first">用户管理</el-tab-pane>
+    <el-tab-pane label="配置管理" name="second">配置管理</el-tab-pane>
+  </el-tabs>
+
+  <!-- 位置 -->
+  <el-tabs v-model="activeName" :tab-position="tabPosition">
+    <el-tab-pane label="用户管理" name="first">用户管理</el-tab-pane>
+    <el-tab-pane label="配置管理" name="second">配置管理</el-tab-pane>
+  </el-tabs>
+
+  <!-- 动态增减标签页 -->
+  <el-tabs v-model="editableTabsValue" type="card" editable @edit="handleTabsEdit">
+    <el-tab-pane
+      v-for="item in editableTabs"
+      :key="item.name"
+      :label="item.title"
+      :name="item.name"
+    >
+      {{ item.content }}
+    </el-tab-pane>
+  </el-tabs>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+
+const activeName = ref('first')
+const tabPosition = ref('top')
+const editableTabsValue = ref('2')
+const editableTabs = ref([
+  { title: 'Tab 1', name: '1', content: 'Tab 1 content' },
+  { title: 'Tab 2', name: '2', content: 'Tab 2 content' }
+])
+
+let tabIndex = 2
+
+const handleClick = (tab, event) => {
+  console.log(tab, event)
+}
+
+const handleTabsEdit = (targetName, action) => {
+  if (action === 'add') {
+    const newTabName = `${++tabIndex}`
+    editableTabs.value.push({
+      title: 'New Tab',
+      name: newTabName,
+      content: 'New Tab content'
+    })
+    editableTabsValue.value = newTabName
+  } else if (action === 'remove') {
+    const tabs = editableTabs.value
+    let activeName = editableTabsValue.value
+    if (activeName === targetName) {
+      tabs.forEach((tab, index) => {
+        if (tab.name === targetName) {
+          const nextTab = tabs[index + 1] || tabs[index - 1]
+          if (nextTab) {
+            activeName = nextTab.name
+          }
+        }
+      })
+    }
+    editableTabsValue.value = activeName
+    editableTabs.value = tabs.filter((tab) => tab.name !== targetName)
+  }
+}
+</script>
+```
+
+### Breadcrumb 面包屑
+
+```vue
+<template>
+  <el-breadcrumb separator="/">
+    <el-breadcrumb-item :to="{ path: '/' }">首页</el-breadcrumb-item>
+    <el-breadcrumb-item><a href="/">活动管理</a></el-breadcrumb-item>
+    <el-breadcrumb-item>活动列表</el-breadcrumb-item>
+    <el-breadcrumb-item>活动详情</el-breadcrumb-item>
+  </el-breadcrumb>
+
+  <!-- 图标分隔符 -->
+  <el-breadcrumb :separator-icon="ArrowRight">
+    <el-breadcrumb-item :to="{ path: '/' }">首页</el-breadcrumb-item>
+    <el-breadcrumb-item>活动管理</el-breadcrumb-item>
+    <el-breadcrumb-item>活动列表</el-breadcrumb-item>
+  </el-breadcrumb>
+</template>
+
+<script setup>
+import { ArrowRight } from '@element-plus/icons-vue'
+</script>
+```
+
+### Dropdown 下拉菜单
+
+```vue
+<template>
+  <el-dropdown @command="handleCommand">
+    <span class="el-dropdown-link">
+      下拉菜单<el-icon class="el-icon--right"><arrow-down /></el-icon>
+    </span>
+    <template #dropdown>
+      <el-dropdown-menu>
+        <el-dropdown-item command="a">黄金糕</el-dropdown-item>
+        <el-dropdown-item command="b">狮子头</el-dropdown-item>
+        <el-dropdown-item command="c" disabled>螺蛳粉</el-dropdown-item>
+        <el-dropdown-item command="d" divided>双皮奶</el-dropdown-item>
+      </el-dropdown-menu>
+    </template>
+  </el-dropdown>
+
+  <!-- 触发方式 -->
+  <el-dropdown trigger="click">
+    <span class="el-dropdown-link">
+      点击触发<el-icon class="el-icon--right"><arrow-down /></el-icon>
+    </span>
+    <template #dropdown>
+      <el-dropdown-menu>
+        <el-dropdown-item>黄金糕</el-dropdown-item>
+        <el-dropdown-item>狮子头</el-dropdown-item>
+      </el-dropdown-menu>
+    </template>
+  </el-dropdown>
+
+  <!-- 按钮下拉 -->
+  <el-dropdown split-button type="primary" @click="handleClick" @command="handleCommand">
+    更多菜单
+    <template #dropdown>
+      <el-dropdown-menu>
+        <el-dropdown-item command="a">黄金糕</el-dropdown-item>
+        <el-dropdown-item command="b">狮子头</el-dropdown-item>
+      </el-dropdown-menu>
+    </template>
+  </el-dropdown>
+</template>
+
+<script setup>
+import { ArrowDown } from '@element-plus/icons-vue'
+
+const handleCommand = (command) => {
+  console.log('click on item ' + command)
+}
+
+const handleClick = () => {
+  console.log('click on button')
+}
+</script>
+```
+
+### Steps 步骤条
+
+```vue
+<template>
+  <el-steps :active="active" finish-status="success">
+    <el-step title="步骤 1" description="这是一段描述" />
+    <el-step title="步骤 2" description="这是一段描述" />
+    <el-step title="步骤 3" description="这是一段描述" />
+  </el-steps>
+
+  <el-button style="margin-top: 12px" @click="next">下一步</el-button>
+
+  <!-- 垂直步骤条 -->
+  <el-steps direction="vertical" :active="1">
+    <el-step title="步骤 1" />
+    <el-step title="步骤 2" />
+    <el-step title="步骤 3" />
+  </el-steps>
+
+  <!-- 简洁风格 -->
+  <el-steps :active="1" simple>
+    <el-step title="步骤 1" :icon="Edit" />
+    <el-step title="步骤 2" :icon="UploadFilled" />
+    <el-step title="步骤 3" :icon="Picture" />
+  </el-steps>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import { Edit, UploadFilled, Picture } from '@element-plus/icons-vue'
+
+const active = ref(0)
+
+const next = () => {
+  if (active.value++ > 2) active.value = 0
+}
+</script>
+```
+
+---
+
+## 反馈组件
+
+### Dialog 对话框
+
+```vue
+<template>
+  <el-button @click="dialogVisible = true">打开对话框</el-button>
+
+  <el-dialog
+    v-model="dialogVisible"
+    title="提示"
+    width="500"
+    :before-close="handleClose"
+  >
+    <span>这是一段信息</span>
+    <template #footer>
+      <span class="dialog-footer">
+        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="dialogVisible = false">确定</el-button>
+      </span>
+    </template>
+  </el-dialog>
+
+  <!-- 居中对话框 -->
+  <el-dialog v-model="centerDialogVisible" title="提示" width="500" center>
+    <span>内容需要居中对齐时使用</span>
+  </el-dialog>
+
+  <!-- 可拖拽 -->
+  <el-dialog v-model="dialogVisible" title="可拖拽" draggable>
+    <span>这是一个可拖拽的对话框</span>
+  </el-dialog>
+
+  <!-- 全屏 -->
+  <el-dialog v-model="dialogVisible" title="全屏" fullscreen>
+    <span>全屏对话框</span>
+  </el-dialog>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import { ElMessageBox } from 'element-plus'
+
+const dialogVisible = ref(false)
+const centerDialogVisible = ref(false)
+
+const handleClose = (done) => {
+  ElMessageBox.confirm('确认关闭？')
+    .then(() => {
+      done()
+    })
+    .catch(() => {
+      // 取消关闭
+    })
+}
+</script>
+```
+
+### Drawer 抽屉
+
+```vue
+<template>
+  <el-button @click="drawer = true">从右侧打开</el-button>
+
+  <el-drawer v-model="drawer" title="我是标题" direction="rtl">
+    <span>Hi, there!</span>
+  </el-drawer>
+
+  <!-- 不同方向 -->
+  <el-drawer v-model="drawer" direction="ltr" title="从左侧打开" />
+  <el-drawer v-model="drawer" direction="ttb" title="从顶部打开" />
+  <el-drawer v-model="drawer" direction="btt" title="从底部打开" />
+
+  <!-- 自定义尺寸 -->
+  <el-drawer v-model="drawer" title="标题" size="50%">
+    <span>内容</span>
+  </el-drawer>
+
+  <!-- 嵌套抽屉 -->
+  <el-drawer v-model="drawer" title="外层抽屉">
+    <el-button @click="innerDrawer = true">打开内层抽屉</el-button>
+    <el-drawer v-model="innerDrawer" title="内层抽屉" />
+  </el-drawer>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+
+const drawer = ref(false)
+const innerDrawer = ref(false)
+</script>
+```
+
+### Message 消息提示
+
+```vue
+<template>
+  <el-button @click="open">打开消息提示</el-button>
+</template>
+
+<script setup>
+import { ElMessage } from 'element-plus'
+
+const open = () => {
+  // 基础用法
+  ElMessage('这是一条消息提示')
+
+  // 不同类型
+  ElMessage.success('成功消息')
+  ElMessage.warning('警告消息')
+  ElMessage.info('信息消息')
+  ElMessage.error('错误消息')
+
+  // 可关闭
+  ElMessage({
+    message: '可关闭的消息',
+    showClose: true
+  })
+
+  // 自定义时长
+  ElMessage({
+    message: '5秒后关闭',
+    duration: 5000
+  })
+
+  // 不自动关闭
+  ElMessage({
+    message: '不会自动关闭',
+    duration: 0
+  })
+
+  // 居中
+  ElMessage({
+    message: '居中消息',
+    center: true
+  })
+
+  // 使用 HTML
+  ElMessage({
+    dangerouslyUseHTMLString: true,
+    message: '<strong>HTML</strong> 消息'
+  })
+
+  // 合并相同内容
+  ElMessage({
+    message: '相同消息会合并',
+    grouping: true
+  })
+}
+
+// 关闭所有消息
+const closeAll = () => {
+  ElMessage.closeAll()
+}
+</script>
+```
+
+### MessageBox 弹框
+
+```vue
+<script setup>
+import { ElMessageBox, ElMessage } from 'element-plus'
+
+// 消息提示
+const openAlert = () => {
+  ElMessageBox.alert('这是一段内容', '标题', {
+    confirmButtonText: '确定',
+    callback: (action) => {
+      ElMessage.info(`action: ${action}`)
+    }
+  })
+}
+
+// 确认框
+const openConfirm = () => {
+  ElMessageBox.confirm(
+    '此操作将永久删除该文件, 是否继续?',
+    '警告',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  )
+    .then(() => {
+      ElMessage.success('删除成功!')
+    })
+    .catch(() => {
+      ElMessage.info('已取消删除')
+    })
+}
+
+// 输入框
+const openPrompt = () => {
+  ElMessageBox.prompt('请输入邮箱', '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    inputPattern: /[\w!#$%&'*+/=?^_`{|}~-]+(?:\.[\w!#$%&'*+/=?^_`{|}~-]+)*@(?:[\w](?:[\w-]*[\w])?\.)+[\w](?:[\w-]*[\w])?/,
+    inputErrorMessage: '邮箱格式不正确'
+  })
+    .then(({ value }) => {
+      ElMessage.success(`您的邮箱是: ${value}`)
+    })
+    .catch(() => {
+      ElMessage.info('取消输入')
+    })
+}
+
+// 使用 HTML
+const openHTML = () => {
+  ElMessageBox.alert('<strong>HTML内容</strong>', 'HTML', {
+    dangerouslyUseHTMLString: true
+  })
+}
+
+// 区分取消与关闭
+const openDistinguish = () => {
+  ElMessageBox.confirm(
+    '内容',
+    '标题',
+    {
+      distinguishCancelAndClose: true,
+      confirmButtonText: '保存',
+      cancelButtonText: '放弃'
+    }
+  )
+    .then(() => {
+      ElMessage.info('保存更改')
+    })
+    .catch((action) => {
+      ElMessage.info(
+        action === 'cancel' ? '放弃更改' : '关闭'
+      )
+    })
+}
+</script>
+```
+
+### Notification 通知
+
+```vue
+<script setup>
+import { h } from 'vue'
+import { ElNotification } from 'element-plus'
+
+// 基础用法
+const openBasic = () => {
+  ElNotification({
+    title: '标题名称',
+    message: '这是提示文案'
+  })
+}
+
+// 不同类型
+const openSuccess = () => {
+  ElNotification({
+    title: '成功',
+    message: '这是一条成功的提示消息',
+    type: 'success'
+  })
+}
+
+const openWarning = () => {
+  ElNotification({
+    title: '警告',
+    message: '这是一条警告的提示消息',
+    type: 'warning'
+  })
+}
+
+const openInfo = () => {
+  ElNotification({
+    title: '消息',
+    message: '这是一条消息的提示消息',
+    type: 'info'
+  })
+}
+
+const openError = () => {
+  ElNotification({
+    title: '错误',
+    message: '这是一条错误的提示消息',
+    type: 'error'
+  })
+}
+
+// 自定义位置
+const openTopLeft = () => {
+  ElNotification({
+    title: '自定义位置',
+    message: '左上角弹出',
+    position: 'top-left'
+  })
+}
+
+// 使用 VNode
+const openVNode = () => {
+  ElNotification({
+    title: 'Title',
+    message: h('i', { style: 'color: teal' }, 'This is a reminder')
+  })
+}
+
+// 不自动关闭
+const openPersistent = () => {
+  ElNotification({
+    title: '标题',
+    message: '这是一条不会自动关闭的消息',
+    duration: 0
+  })
+}
+
+// 关闭所有
+const closeAll = () => {
+  ElNotification.closeAll()
+}
+</script>
+```
+
+### Loading 加载
+
+```vue
+<template>
+  <!-- 区域加载 -->
+  <el-table v-loading="loading" :data="tableData">
+    <el-table-column prop="date" label="日期" />
+    <el-table-column prop="name" label="姓名" />
+  </el-table>
+
+  <!-- 自定义加载文案和图标 -->
+  <el-table
+    v-loading="loading"
+    element-loading-text="加载中..."
+    element-loading-spinner="el-icon-loading"
+    element-loading-background="rgba(0, 0, 0, 0.8)"
+    :data="tableData"
+  >
+    <el-table-column prop="date" label="日期" />
+    <el-table-column prop="name" label="姓名" />
+  </el-table>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import { ElLoading } from 'element-plus'
+
+const loading = ref(true)
+const tableData = ref([])
+
+// 全屏加载
+const openFullScreen = () => {
+  const loading = ElLoading.service({
+    lock: true,
+    text: 'Loading',
+    background: 'rgba(0, 0, 0, 0.7)'
+  })
+  setTimeout(() => {
+    loading.close()
+  }, 2000)
+}
+
+// 以指令方式调用
+const fullscreenLoading = ref(false)
+</script>
+```
+
+### Popover 弹出框
+
+```vue
+<template>
+  <!-- 基础用法 -->
+  <el-popover
+    placement="top-start"
+    title="标题"
+    :width="200"
+    trigger="hover"
+    content="这是一段内容"
+  >
+    <template #reference>
+      <el-button>hover 激活</el-button>
+    </template>
+  </el-popover>
+
+  <el-popover
+    placement="bottom"
+    title="标题"
+    :width="200"
+    trigger="click"
+    content="这是一段内容"
+  >
+    <template #reference>
+      <el-button>click 激活</el-button>
+    </template>
+  </el-popover>
+
+  <!-- 嵌套内容 -->
+  <el-popover placement="right" :width="400" trigger="click">
+    <template #reference>
+      <el-button>click 激活</el-button>
+    </template>
+    <el-table :data="gridData">
+      <el-table-column width="150" property="date" label="日期" />
+      <el-table-column width="100" property="name" label="姓名" />
+      <el-table-column width="150" property="address" label="地址" />
+    </el-table>
+  </el-popover>
+</template>
+```
+
+### Tooltip 文字提示
+
+```vue
+<template>
+  <!-- 基础用法 -->
+  <el-tooltip content="Top center" placement="top">
+    <el-button>上</el-button>
+  </el-tooltip>
+
+  <el-tooltip content="Bottom center" placement="bottom">
+    <el-button>下</el-button>
+  </el-tooltip>
+
+  <!-- 主题 -->
+  <el-tooltip content="Dark" placement="top">
+    <el-button>Dark</el-button>
+  </el-tooltip>
+
+  <el-tooltip content="Light" placement="top" effect="light">
+    <el-button>Light</el-button>
+  </el-tooltip>
+
+  <!-- 自定义内容 -->
+  <el-tooltip placement="top">
+    <template #content>
+      多行信息<br />第二行信息
+    </template>
+    <el-button>自定义内容</el-button>
+  </el-tooltip>
+</template>
+```
+
+### Alert 警告
+
+```vue
+<template>
+  <el-alert title="成功提示" type="success" />
+  <el-alert title="消息提示" type="info" />
+  <el-alert title="警告提示" type="warning" />
+  <el-alert title="错误提示" type="error" />
+
+  <!-- 不可关闭 -->
+  <el-alert title="不可关闭" type="success" :closable="false" />
+
+  <!-- 带图标 -->
+  <el-alert title="带图标" type="success" show-icon />
+
+  <!-- 带描述 -->
+  <el-alert
+    title="带描述"
+    type="success"
+    description="这是一段描述文字"
+    show-icon
+  />
+
+  <!-- 居中 -->
+  <el-alert title="居中" type="success" center show-icon />
+</template>
+```
+
+### Skeleton 骨架屏
+
+```vue
+<template>
+  <el-skeleton :rows="5" animated />
+
+  <!-- 自定义模板 -->
+  <el-skeleton style="width: 240px">
+    <template #template>
+      <el-skeleton-item variant="image" style="width: 240px; height: 240px" />
+      <div style="padding: 14px">
+        <el-skeleton-item variant="p" style="width: 50%" />
+        <div style="display: flex; align-items: center; justify-content: space-between">
+          <el-skeleton-item variant="text" style="margin-right: 16px" />
+          <el-skeleton-item variant="text" style="width: 30%" />
+        </div>
+      </div>
+    </template>
+  </el-skeleton>
+
+  <!-- 加载状态 -->
+  <el-skeleton :loading="loading" animated>
+    <template #template>
+      <el-skeleton-item variant="image" style="width: 240px; height: 240px" />
+    </template>
+    <template #default>
+      <img src="actual-image.jpg" alt="实际内容" />
+    </template>
+  </el-skeleton>
+</template>
+```
+
+---
+
+## 主题定制
+
+### CSS 变量方案
+
+```css
+/* 全局修改 */
+:root {
+  --el-color-primary: green;
+  --el-color-success: #67c23a;
+  --el-color-warning: #e6a23c;
+  --el-color-danger: #f56c6c;
+  --el-color-info: #909399;
+}
+
+/* 组件级别修改 */
+.custom-class {
+  --el-tag-bg-color: red;
+}
+```
+
+### JavaScript 动态修改
+
+```typescript
+const el = document.documentElement
+
+// 获取 CSS 变量
+const primaryColor = getComputedStyle(el).getPropertyValue('--el-color-primary')
+
+// 设置 CSS 变量
+el.style.setProperty('--el-color-primary', 'red')
+```
+
+### SCSS 变量方案
+
+```scss
+// styles/element/index.scss
+@forward 'element-plus/theme-chalk/src/common/var.scss' with (
+  $colors: (
+    'primary': (
+      'base': green,
+    ),
+  ),
+);
+```
+
+**Vite 配置**:
+
+```typescript
+// vite.config.ts
+export default defineConfig({
+  css: {
+    preprocessorOptions: {
+      scss: {
+        additionalData: `@use "~/styles/element/index.scss" as *;`,
+      },
+    },
+  },
+})
+```
+
+### 暗黑模式
+
+```typescript
+// main.ts
+import 'element-plus/theme-chalk/dark/css-vars.css'
+```
+
+```html
+<html class="dark">
+  <head></head>
+  <body></body>
+</html>
+```
+
+**动态切换** (使用 VueUse):
+
+```vue
+<script setup>
+import { useDark, useToggle } from '@vueuse/core'
+
+const isDark = useDark()
+const toggleDark = useToggle(isDark)
+</script>
+
+<template>
+  <el-button @click="toggleDark()">
+    {{ isDark ? '亮色模式' : '暗黑模式' }}
+  </el-button>
+</template>
+```
+
+**自定义暗黑模式变量**:
+
+```css
+html.dark {
+  --el-bg-color: #141414;
+  --el-bg-color-page: #0a0a0a;
+  --el-bg-color-overlay: #1d1e1f;
+}
+```
+
+---
+
+## 国际化
+
+### 全局配置
+
+```typescript
+// main.ts
+import ElementPlus from 'element-plus'
+import zhCn from 'element-plus/es/locale/lang/zh-cn'
+
+app.use(ElementPlus, {
+  locale: zhCn,
+})
+```
+
+### ConfigProvider 方式
+
+```vue
+<template>
+  <el-config-provider :locale="locale">
+    <app />
+  </el-config-provider>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import zhCn from 'element-plus/es/locale/lang/zh-cn'
+import en from 'element-plus/es/locale/lang/en'
+
+const locale = ref(zhCn)
+
+const toggleLanguage = () => {
+  locale.value = locale.value === zhCn ? en : zhCn
+}
+</script>
+```
+
+### Day.js 本地化
+
+```typescript
+import 'dayjs/locale/zh-cn'
+```
+
+### 支持的语言
+
+Element Plus 支持 60+ 种语言，包括：
+- 简体中文 (zh-cn)
+- 繁体中文 (zh-tw)
+- 英语 (en)
+- 日语 (ja)
+- 韩语 (ko)
+- 法语 (fr)
+- 德语 (de)
+- 西班牙语 (es)
+- 等等...
+
+---
+
+## 最佳实践
+
+### 项目结构
+
+```
+src/
+├── assets/
+├── components/
+│   └── common/
+├── composables/
+├── layouts/
+├── pages/
+├── router/
+├── stores/
+├── styles/
+│   └── element/
+│       └── index.scss
+├── utils/
+├── App.vue
+└── main.ts
+```
+
+### 按需引入配置
+
+```typescript
+// vite.config.ts
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+import AutoImport from 'unplugin-auto-import/vite'
+import Components from 'unplugin-vue-components/vite'
+import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
+
+export default defineConfig({
+  plugins: [
+    vue(),
+    AutoImport({
+      imports: ['vue', 'vue-router', 'pinia'],
+      resolvers: [ElementPlusResolver()],
+      dts: 'src/auto-imports.d.ts',
+    }),
+    Components({
+      resolvers: [ElementPlusResolver()],
+      dts: 'src/components.d.ts',
+    }),
+  ],
+})
+```
+
+### 与 Vue Router 集成
+
+```typescript
+// router/index.ts
+import { createRouter, createWebHistory } from 'vue-router'
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes: [
+    {
+      path: '/',
+      component: () => import('@/layouts/DefaultLayout.vue'),
+      children: [
+        {
+          path: '',
+          name: 'Home',
+          component: () => import('@/pages/Home.vue'),
+        },
+      ],
+    },
+  ],
+})
+
+export default router
+```
+
+### 与 Pinia 集成
+
+```typescript
+// stores/user.ts
+import { defineStore } from 'pinia'
+import { ref, computed } from 'vue'
+
+export const useUserStore = defineStore('user', () => {
+  const user = ref(null)
+  const isLoggedIn = computed(() => !!user.value)
+
+  function setUser(userData) {
+    user.value = userData
+  }
+
+  function logout() {
+    user.value = null
+  }
+
+  return { user, isLoggedIn, setUser, logout }
+})
+```
+
+### 表单封装示例
+
+```vue
+<script setup lang="ts">
+import { reactive, ref } from 'vue'
+import type { FormInstance, FormRules } from 'element-plus'
+
+interface LoginForm {
+  username: string
+  password: string
+  remember: boolean
+}
+
+const formRef = ref<FormInstance>()
+const loading = ref(false)
+
+const form = reactive<LoginForm>({
+  username: '',
+  password: '',
+  remember: false,
+})
+
+const rules = reactive<FormRules<LoginForm>>({
+  username: [
+    { required: true, message: '请输入用户名', trigger: 'blur' },
+    { min: 3, max: 20, message: '长度在 3 到 20 个字符', trigger: 'blur' },
+  ],
+  password: [
+    { required: true, message: '请输入密码', trigger: 'blur' },
+    { min: 6, message: '密码至少 6 个字符', trigger: 'blur' },
+  ],
+})
+
+const handleSubmit = async () => {
+  const formEl = formRef.value
+  if (!formEl) return
+
+  await formEl.validate(async (valid) => {
+    if (valid) {
+      loading.value = true
+      try {
+        // 提交逻辑
+        console.log('提交表单', form)
+      } finally {
+        loading.value = false
+      }
+    }
+  })
+}
+
+const handleReset = () => {
+  formRef.value?.resetFields()
+}
+</script>
+
+<template>
+  <el-form
+    ref="formRef"
+    :model="form"
+    :rules="rules"
+    label-width="80px"
+    @submit.prevent="handleSubmit"
+  >
+    <el-form-item label="用户名" prop="username">
+      <el-input v-model="form.username" placeholder="请输入用户名" />
+    </el-form-item>
+
+    <el-form-item label="密码" prop="password">
+      <el-input
+        v-model="form.password"
+        type="password"
+        placeholder="请输入密码"
+        show-password
+      />
+    </el-form-item>
+
+    <el-form-item>
+      <el-checkbox v-model="form.remember">记住我</el-checkbox>
+    </el-form-item>
+
+    <el-form-item>
+      <el-button type="primary" :loading="loading" @click="handleSubmit">
+        登录
+      </el-button>
+      <el-button @click="handleReset">重置</el-button>
+    </el-form-item>
+  </el-form>
+</template>
+```
+
+### 表格封装示例
+
+```vue
+<script setup lang="ts">
+import { ref, reactive, onMounted } from 'vue'
+import type { TableInstance } from 'element-plus'
+
+interface User {
+  id: number
+  name: string
+  email: string
+  status: string
+  createTime: string
+}
+
+interface QueryParams {
+  page: number
+  pageSize: number
+  keyword: string
+}
+
+const tableRef = ref<TableInstance>()
+const loading = ref(false)
+const tableData = ref<User[]>([])
+const total = ref(0)
+
+const queryParams = reactive<QueryParams>({
+  page: 1,
+  pageSize: 10,
+  keyword: '',
+})
+
+const fetchData = async () => {
+  loading.value = true
+  try {
+    // 模拟 API 调用
+    const response = await fetch(`/api/users?page=${queryParams.page}&size=${queryParams.pageSize}&keyword=${queryParams.keyword}`)
+    const data = await response.json()
+    tableData.value = data.list
+    total.value = data.total
+  } finally {
+    loading.value = false
+  }
+}
+
+const handleSearch = () => {
+  queryParams.page = 1
+  fetchData()
+}
+
+const handleReset = () => {
+  queryParams.keyword = ''
+  handleSearch()
+}
+
+const handlePageChange = (page: number) => {
+  queryParams.page = page
+  fetchData()
+}
+
+const handleSizeChange = (size: number) => {
+  queryParams.pageSize = size
+  queryParams.page = 1
+  fetchData()
+}
+
+onMounted(() => {
+  fetchData()
+})
+</script>
+
+<template>
+  <div class="table-container">
+    <!-- 搜索栏 -->
+    <el-form :inline="true" :model="queryParams" class="search-form">
+      <el-form-item label="关键词">
+        <el-input
+          v-model="queryParams.keyword"
+          placeholder="请输入关键词"
+          clearable
+          @keyup.enter="handleSearch"
+        />
+      </el-form-item>
+      <el-form-item>
+        <el-button type="primary" @click="handleSearch">搜索</el-button>
+        <el-button @click="handleReset">重置</el-button>
+      </el-form-item>
+    </el-form>
+
+    <!-- 表格 -->
+    <el-table
+      ref="tableRef"
+      v-loading="loading"
+      :data="tableData"
+      border
+      stripe
+    >
+      <el-table-column type="selection" width="55" />
+      <el-table-column prop="id" label="ID" width="80" />
+      <el-table-column prop="name" label="姓名" width="120" />
+      <el-table-column prop="email" label="邮箱" min-width="200" />
+      <el-table-column prop="status" label="状态" width="100">
+        <template #default="{ row }">
+          <el-tag :type="row.status === 'active' ? 'success' : 'danger'">
+            {{ row.status === 'active' ? '启用' : '禁用' }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column prop="createTime" label="创建时间" width="180" />
+      <el-table-column label="操作" width="150" fixed="right">
+        <template #default="{ row }">
+          <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
+          <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
+        </template>
+      </el-table-column>
+    </el-table>
+
+    <!-- 分页 -->
+    <el-pagination
+      v-model:current-page="queryParams.page"
+      v-model:page-size="queryParams.pageSize"
+      :page-sizes="[10, 20, 50, 100]"
+      :total="total"
+      layout="total, sizes, prev, pager, next, jumper"
+      @size-change="handleSizeChange"
+      @current-change="handlePageChange"
+    />
+  </div>
+</template>
+```
+
+---
+
+## 内置过渡动画
+
+Element Plus 提供了一系列内置的过渡动画：
+
+```vue
+<template>
+  <!-- 淡入淡出 -->
+  <el-button @click="show = !show">Toggle</el-button>
+  <transition name="el-fade-in">
+    <div v-show="show">内容</div>
+  </transition>
+
+  <!-- 缩放 -->
+  <transition name="el-zoom-in-center">
+    <div v-show="show">内容</div>
+  </transition>
+
+  <!-- 折叠 -->
+  <el-collapse-transition>
+    <div v-show="show">内容</div>
+  </el-collapse-transition>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import { ElCollapseTransition } from 'element-plus'
+
+const show = ref(true)
+</script>
+```
+
+**可用的过渡名称**:
+- `el-fade-in-linear`
+- `el-fade-in`
+- `el-zoom-in-center`
+- `el-zoom-in-top`
+- `el-zoom-in-bottom`
+
+---
+
+## TypeScript 支持
+
+### 类型导入
+
+```typescript
+import type {
+  FormInstance,
+  FormRules,
+  TableInstance,
+  TableColumnCtx,
+  UploadProps,
+  UploadFile,
+  ComponentSize,
+} from 'element-plus'
+```
+
+### 组件 Ref 类型
+
+```typescript
+import { ref } from 'vue'
+import type { FormInstance, TableInstance } from 'element-plus'
+
+const formRef = ref<FormInstance>()
+const tableRef = ref<TableInstance>()
+```
+
+### Props 类型
+
+```typescript
+import type { FormProps, TableProps } from 'element-plus'
+
+const formProps: Partial<FormProps> = {
+  labelWidth: '100px',
+  labelPosition: 'right',
+}
+```
+
+---
+
+## 补充组件
+
+### Cascader 级联选择器
+
+```vue
+<template>
+  <!-- 基础用法 -->
+  <el-cascader v-model="value" :options="options" />
+
+  <!-- 可清空 -->
+  <el-cascader v-model="value" :options="options" clearable />
+
+  <!-- 展开次级菜单方式 -->
+  <el-cascader
+    v-model="value"
+    :options="options"
+    :props="{ expandTrigger: 'hover' }"
+  />
+
+  <!-- 多选 -->
+  <el-cascader
+    v-model="multiValue"
+    :options="options"
+    :props="{ multiple: true }"
+    collapse-tags
+    collapse-tags-tooltip
+  />
+
+  <!-- 可搜索 -->
+  <el-cascader
+    v-model="value"
+    :options="options"
+    filterable
+  />
+
+  <!-- 懒加载 -->
+  <el-cascader
+    v-model="value"
+    :props="lazyProps"
+  />
+
+  <!-- 任意级别可选 -->
+  <el-cascader
+    v-model="value"
+    :options="options"
+    :props="{ checkStrictly: true }"
+  />
+</template>
+
+<script setup>
+import { ref } from 'vue'
+
+const value = ref([])
+const multiValue = ref([])
+
+const options = [
+  {
+    value: 'guide',
+    label: 'Guide',
+    children: [
+      {
+        value: 'disciplines',
+        label: 'Disciplines',
+        children: [
+          { value: 'consistency', label: 'Consistency' },
+          { value: 'feedback', label: 'Feedback' }
+        ]
+      }
+    ]
+  },
+  {
+    value: 'component',
+    label: 'Component',
+    children: [
+      { value: 'basic', label: 'Basic' },
+      { value: 'form', label: 'Form', disabled: true }
+    ]
+  }
+]
+
+// 懒加载配置
+const lazyProps = {
+  lazy: true,
+  lazyLoad(node, resolve) {
+    const { level } = node
+    setTimeout(() => {
+      const nodes = Array.from({ length: level + 1 }).map((_, idx) => ({
+        value: `${node.value || ''}-${idx}`,
+        label: `Option ${idx}`,
+        leaf: level >= 2
+      }))
+      resolve(nodes)
+    }, 1000)
+  }
+}
+</script>
+```
+
+**Cascader 属性**:
+
+| 属性 | 说明 | 类型 | 默认值 |
+|------|------|------|--------|
+| v-model | 选中项绑定值 | array | — |
+| options | 可选项数据源 | array | — |
+| props | 配置选项 | object | — |
+| clearable | 是否可清空 | boolean | false |
+| show-all-levels | 显示完整路径 | boolean | true |
+| collapse-tags | 多选时折叠标签 | boolean | false |
+| filterable | 是否可搜索 | boolean | false |
+| disabled | 是否禁用 | boolean | false |
+
+**Props 配置项**:
+
+| 属性 | 说明 | 类型 | 默认值 |
+|------|------|------|--------|
+| expandTrigger | 展开方式 | 'click'/'hover' | 'click' |
+| multiple | 是否多选 | boolean | false |
+| checkStrictly | 可选任意级别 | boolean | false |
+| emitPath | 选中值为完整路径 | boolean | true |
+| lazy | 是否懒加载 | boolean | false |
+| lazyLoad | 懒加载函数 | function | — |
+| value | 值字段名 | string | 'value' |
+| label | 标签字段名 | string | 'label' |
+| children | 子节点字段名 | string | 'children' |
+
+---
+
+### InputNumber 数字输入框
+
+```vue
+<template>
+  <!-- 基础用法 -->
+  <el-input-number v-model="num" :min="1" :max="10" />
+
+  <!-- 禁用状态 -->
+  <el-input-number v-model="num" disabled />
+
+  <!-- 步数 -->
+  <el-input-number v-model="num" :step="2" />
+
+  <!-- 严格步数 -->
+  <el-input-number v-model="num" :step="2" step-strictly />
+
+  <!-- 精度 -->
+  <el-input-number v-model="num" :precision="2" :step="0.1" :max="10" />
+
+  <!-- 按钮位置 -->
+  <el-input-number v-model="num" controls-position="right" />
+
+  <!-- 不同尺寸 -->
+  <el-input-number v-model="num" size="large" />
+  <el-input-number v-model="num" />
+  <el-input-number v-model="num" size="small" />
+</template>
+
+<script setup>
+import { ref } from 'vue'
+const num = ref(1)
+</script>
+```
+
+**InputNumber 属性**:
+
+| 属性 | 说明 | 类型 | 默认值 |
+|------|------|------|--------|
+| v-model | 绑定值 | number | — |
+| min | 最小值 | number | -Infinity |
+| max | 最大值 | number | Infinity |
+| step | 步长 | number | 1 |
+| step-strictly | 严格步数 | boolean | false |
+| precision | 数值精度 | number | — |
+| controls | 是否使用控制按钮 | boolean | true |
+| controls-position | 按钮位置 | 'right'/'' | — |
+| size | 尺寸 | 'large'/'default'/'small' | default |
+| disabled | 禁用 | boolean | false |
+| readonly | 只读 | boolean | false |
+| placeholder | 占位文本 | string | — |
+
+---
+
+### Autocomplete 自动补全
+
+```vue
+<template>
+  <el-autocomplete
+    v-model="state"
+    :fetch-suggestions="querySearch"
+    placeholder="请输入"
+    @select="handleSelect"
+  />
+
+  <!-- 自定义模板 -->
+  <el-autocomplete
+    v-model="state"
+    :fetch-suggestions="querySearch"
+    placeholder="请输入"
+  >
+    <template #default="{ item }">
+      <div class="value">{{ item.value }}</div>
+      <span class="link">{{ item.link }}</span>
+    </template>
+  </el-autocomplete>
+
+  <!-- 远程搜索 -->
+  <el-autocomplete
+    v-model="state"
+    :fetch-suggestions="querySearchAsync"
+    placeholder="请输入"
+    :loading="loading"
+  />
+</template>
+
+<script setup>
+import { ref, onMounted } from 'vue'
+
+const state = ref('')
+const loading = ref(false)
+const restaurants = ref([])
+
+onMounted(() => {
+  restaurants.value = loadAll()
+})
+
+const loadAll = () => [
+  { value: 'vue', link: 'https://github.com/vuejs/vue' },
+  { value: 'element', link: 'https://github.com/element-plus/element-plus' },
+  { value: 'vite', link: 'https://github.com/vitejs/vite' }
+]
+
+const querySearch = (queryString, cb) => {
+  const results = queryString
+    ? restaurants.value.filter(r => r.value.toLowerCase().includes(queryString.toLowerCase()))
+    : restaurants.value
+  cb(results)
+}
+
+const querySearchAsync = (queryString, cb) => {
+  loading.value = true
+  setTimeout(() => {
+    cb(querySearch(queryString, r => r))
+    loading.value = false
+  }, 1000)
+}
+
+const handleSelect = (item) => {
+  console.log(item)
+}
+</script>
+```
+
+**Autocomplete 属性**:
+
+| 属性 | 说明 | 类型 | 默认值 |
+|------|------|------|--------|
+| v-model | 绑定值 | string | — |
+| fetch-suggestions | 获取建议数据方法 | function | — |
+| trigger-on-focus | 聚焦时显示建议 | boolean | true |
+| clearable | 可清空 | boolean | false |
+| disabled | 禁用 | boolean | false |
+| debounce | 防抖延迟(ms) | number | 300 |
+| placement | 弹出位置 | string | 'bottom-start' |
+| highlight-first-item | 高亮第一项 | boolean | false |
+
+---
+
+### TreeSelect 树形选择
+
+```vue
+<template>
+  <!-- 基础用法 -->
+  <el-tree-select v-model="value" :data="data" />
+
+  <!-- 多选 -->
+  <el-tree-select v-model="multiValue" :data="data" multiple />
+
+  <!-- 显示复选框 -->
+  <el-tree-select
+    v-model="value"
+    :data="data"
+    show-checkbox
+  />
+
+  <!-- 可筛选 -->
+  <el-tree-select
+    v-model="value"
+    :data="data"
+    filterable
+  />
+
+  <!-- 懒加载 -->
+  <el-tree-select
+    v-model="value"
+    :data="data"
+    lazy
+    :load="loadNode"
+  />
+
+  <!-- 任意级别可选 -->
+  <el-tree-select
+    v-model="value"
+    :data="data"
+    show-checkbox
+    check-strictly
+  />
+</template>
+
+<script setup>
+import { ref } from 'vue'
+
+const value = ref()
+const multiValue = ref([])
+
+const data = [
+  {
+    value: '1',
+    label: 'Level one 1',
+    children: [
+      {
+        value: '1-1',
+        label: 'Level two 1-1',
+        children: [
+          { value: '1-1-1', label: 'Level three 1-1-1' }
+        ]
+      }
+    ]
+  },
+  {
+    value: '2',
+    label: 'Level one 2',
+    children: [
+      { value: '2-1', label: 'Level two 2-1' },
+      { value: '2-2', label: 'Level two 2-2' }
+    ]
+  }
+]
+
+const loadNode = (node, resolve) => {
+  if (node.isLeaf) return resolve([])
+  setTimeout(() => {
+    resolve([
+      { value: `${node.value}-1`, label: `lazy ${node.label}-1` },
+      { value: `${node.value}-2`, label: `lazy ${node.label}-2`, isLeaf: true }
+    ])
+  }, 500)
+}
+</script>
+```
+
+---
+
+### Mention 提及
+
+```vue
+<template>
+  <!-- 基础用法 -->
+  <el-mention
+    v-model="value"
+    :options="options"
+    placeholder="输入 @ 提及用户"
+  />
+
+  <!-- 多行文本 -->
+  <el-mention
+    v-model="value"
+    :options="options"
+    type="textarea"
+    :rows="3"
+  />
+
+  <!-- 多个触发符 -->
+  <el-mention
+    v-model="value"
+    :options="computedOptions"
+    :prefix="['@', '#']"
+    @search="handleSearch"
+  />
+
+  <!-- 远程搜索 -->
+  <el-mention
+    v-model="value"
+    :options="remoteOptions"
+    :loading="loading"
+    @search="handleRemoteSearch"
+  />
+</template>
+
+<script setup>
+import { ref, computed } from 'vue'
+
+const value = ref('')
+const loading = ref(false)
+const currentPrefix = ref('@')
+const remoteOptions = ref([])
+
+const options = [
+  { value: 'zhangsan', label: '张三' },
+  { value: 'lisi', label: '李四' },
+  { value: 'wangwu', label: '王五' }
+]
+
+const tags = [
+  { value: 'bug', label: 'Bug' },
+  { value: 'feature', label: 'Feature' }
+]
+
+const computedOptions = computed(() => {
+  return currentPrefix.value === '@' ? options : tags
+})
+
+const handleSearch = (pattern, prefix) => {
+  currentPrefix.value = prefix
+}
+
+const handleRemoteSearch = async (pattern, prefix) => {
+  loading.value = true
+  // 模拟远程请求
+  setTimeout(() => {
+    remoteOptions.value = options.filter(o =>
+      o.label.includes(pattern)
+    )
+    loading.value = false
+  }, 500)
+}
+</script>
+```
+
+**Mention 属性**:
+
+| 属性 | 说明 | 类型 | 默认值 |
+|------|------|------|--------|
+| v-model | 绑定值 | string | — |
+| options | 选项数据 | array | [] |
+| prefix | 触发字符 | string/array | '@' |
+| split | 分隔符 | string | ' ' |
+| type | 输入框类型 | 'text'/'textarea' | 'text' |
+| loading | 加载状态 | boolean | false |
+| whole | 整体删除 | boolean | false |
+
+**事件**:
+- `@search`: 触发搜索时
+- `@select`: 选中时
+
+---
+
+### InputTag 标签输入
+
+```vue
+<template>
+  <!-- 基础用法 -->
+  <el-input-tag v-model="tags" placeholder="请输入标签" />
+
+  <!-- 限制数量 -->
+  <el-input-tag v-model="tags" :max="5" />
+
+  <!-- 不同触发方式 -->
+  <el-input-tag v-model="tags" trigger="Space" />
+
+  <!-- 可拖拽排序 -->
+  <el-input-tag v-model="tags" draggable />
+
+  <!-- 折叠标签 -->
+  <el-input-tag
+    v-model="tags"
+    collapse-tags
+    collapse-tags-tooltip
+    :max-collapse-tags="2"
+  />
+
+  <!-- 分隔符自动分割 -->
+  <el-input-tag v-model="tags" delimiter="," />
+
+  <!-- 标签类型 -->
+  <el-input-tag v-model="tags" tag-type="success" />
+</template>
+
+<script setup>
+import { ref } from 'vue'
+const tags = ref(['标签1', '标签2'])
+</script>
+```
+
+**InputTag 属性**:
+
+| 属性 | 说明 | 类型 | 默认值 |
+|------|------|------|--------|
+| v-model | 绑定值 | array | — |
+| max | 最大标签数 | number | — |
+| trigger | 触发键 | 'Enter'/'Space' | 'Enter' |
+| tag-type | 标签类型 | string | 'info' |
+| draggable | 可拖拽 | boolean | false |
+| delimiter | 分隔符 | string/regexp | — |
+| collapse-tags | 折叠标签 | boolean | false |
+| clearable | 可清空 | boolean | false |
+| disabled | 禁用 | boolean | false |
+
+---
+
+### SelectV2 虚拟化选择器
+
+用于大数据量场景，支持虚拟滚动优化性能。
+
+```vue
+<template>
+  <!-- 基础用法 -->
+  <el-select-v2
+    v-model="value"
+    :options="options"
+    placeholder="请选择"
+    style="width: 240px"
+  />
+
+  <!-- 多选 -->
+  <el-select-v2
+    v-model="multiValue"
+    :options="options"
+    multiple
+    placeholder="请选择"
+  />
+
+  <!-- 可筛选 -->
+  <el-select-v2
+    v-model="value"
+    :options="options"
+    filterable
+    placeholder="请选择"
+  />
+
+  <!-- 分组 -->
+  <el-select-v2
+    v-model="value"
+    :options="groupedOptions"
+    placeholder="请选择"
+  />
+
+  <!-- 自定义模板 -->
+  <el-select-v2 v-model="value" :options="options">
+    <template #default="{ item }">
+      <span>{{ item.label }}</span>
+      <span style="color: #8492a6; font-size: 12px">{{ item.value }}</span>
+    </template>
+  </el-select-v2>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+
+const value = ref('')
+const multiValue = ref([])
+
+// 大数据量选项
+const options = Array.from({ length: 10000 }).map((_, idx) => ({
+  value: `option_${idx}`,
+  label: `Option ${idx}`
+}))
+
+// 分组选项
+const groupedOptions = [
+  {
+    label: 'Group 1',
+    options: [
+      { value: '1', label: 'Option 1' },
+      { value: '2', label: 'Option 2' }
+    ]
+  },
+  {
+    label: 'Group 2',
+    options: [
+      { value: '3', label: 'Option 3' },
+      { value: '4', label: 'Option 4' }
+    ]
+  }
+]
+</script>
+```
+
+**SelectV2 属性**:
+
+| 属性 | 说明 | 类型 | 默认值 |
+|------|------|------|--------|
+| v-model | 绑定值 | string/array | — |
+| options | 选项数据 | array | — |
+| multiple | 是否多选 | boolean | false |
+| filterable | 是否可筛选 | boolean | false |
+| clearable | 是否可清空 | boolean | false |
+| disabled | 禁用 | boolean | false |
+| remote | 远程搜索 | boolean | false |
+| allow-create | 允许创建 | boolean | false |
+
+---
+
+### TableV2 虚拟化表格
+
+用于渲染大数据量表格，使用虚拟滚动优化性能。
+
+```vue
+<template>
+  <!-- 基础用法 -->
+  <el-table-v2
+    :columns="columns"
+    :data="data"
+    :width="700"
+    :height="400"
+  />
+
+  <!-- 固定列 -->
+  <el-table-v2
+    :columns="fixedColumns"
+    :data="data"
+    :width="700"
+    :height="400"
+    fixed
+  />
+
+  <!-- 自动调整大小 -->
+  <el-auto-resizer>
+    <template #default="{ height, width }">
+      <el-table-v2
+        :columns="columns"
+        :data="data"
+        :width="width"
+        :height="height"
+      />
+    </template>
+  </el-auto-resizer>
+
+  <!-- 排序 -->
+  <el-table-v2
+    :columns="sortableColumns"
+    :data="data"
+    :sort-by="sortState"
+    :width="700"
+    :height="400"
+    @column-sort="onSort"
+  />
+</template>
+
+<script setup>
+import { ref } from 'vue'
+
+const generateColumns = (length = 10) =>
+  Array.from({ length }).map((_, idx) => ({
+    key: `col_${idx}`,
+    dataKey: `col_${idx}`,
+    title: `Column ${idx}`,
+    width: 150
+  }))
+
+const generateData = (columns, length = 200) =>
+  Array.from({ length }).map((_, rowIdx) =>
+    columns.reduce((acc, col, colIdx) => {
+      acc[col.dataKey] = `Row ${rowIdx} - Col ${colIdx}`
+      return acc
+    }, { id: `row_${rowIdx}` })
+  )
+
+const columns = generateColumns(10)
+const data = ref(generateData(columns, 1000))
+
+// 固定列
+const fixedColumns = [
+  { ...columns[0], fixed: true, width: 150 },
+  ...columns.slice(1),
+  { ...columns[columns.length - 1], fixed: 'right', width: 150 }
+]
+
+// 排序
+const sortableColumns = columns.map((col, idx) => ({
+  ...col,
+  sortable: idx === 0
+}))
+
+const sortState = ref({ key: 'col_0', order: 'asc' })
+
+const onSort = (sortBy) => {
+  sortState.value = sortBy
+  data.value = [...data.value].reverse()
+}
+</script>
+```
+
+**注意**: TableV2 仍处于 Beta 阶段，生产环境使用需谨慎。
+
+---
+
+### TreeV2 虚拟化树
+
+用于渲染大数据量树形结构。
+
+```vue
+<template>
+  <el-tree-v2
+    :data="data"
+    :props="props"
+    :height="400"
+    show-checkbox
+    @check-change="handleCheckChange"
+  />
+</template>
+
+<script setup>
+import { ref } from 'vue'
+
+const props = {
+  value: 'id',
+  label: 'label',
+  children: 'children'
+}
+
+// 生成大量数据
+const generateData = () => {
+  const data = []
+  for (let i = 0; i < 100; i++) {
+    const children = []
+    for (let j = 0; j < 100; j++) {
+      children.push({
+        id: `${i}-${j}`,
+        label: `Node ${i}-${j}`
+      })
+    }
+    data.push({
+      id: `${i}`,
+      label: `Node ${i}`,
+      children
+    })
+  }
+  return data
+}
+
+const data = ref(generateData())
+
+const handleCheckChange = (data, checked) => {
+  console.log(data, checked)
+}
+</script>
+```
+
+**TreeV2 属性**:
+
+| 属性 | 说明 | 类型 | 默认值 |
+|------|------|------|--------|
+| data | 数据 | array | — |
+| props | 配置选项 | object | — |
+| height | 容器高度 | number | 200 |
+| item-size | 节点高度 | number | 26 |
+| show-checkbox | 显示复选框 | boolean | false |
+| check-strictly | 父子不关联 | boolean | false |
+| filter-method | 筛选方法 | function | — |
+
+---
+
+### Calendar 日历
+
+```vue
+<template>
+  <!-- 基础用法 -->
+  <el-calendar v-model="value" />
+
+  <!-- 自定义内容 -->
+  <el-calendar v-model="value">
+    <template #date-cell="{ data }">
+      <p :class="data.isSelected ? 'is-selected' : ''">
+        {{ data.day.split('-').slice(1).join('-') }}
+        {{ data.isSelected ? '✔️' : '' }}
+      </p>
+    </template>
+  </el-calendar>
+
+  <!-- 日期范围 -->
+  <el-calendar v-model="value" :range="[startDate, endDate]" />
+</template>
+
+<script setup>
+import { ref } from 'vue'
+
+const value = ref(new Date())
+const startDate = new Date(2024, 0, 1)
+const endDate = new Date(2024, 1, 28)
+</script>
+```
+
+**Calendar 属性**:
+
+| 属性 | 说明 | 类型 | 默认值 |
+|------|------|------|--------|
+| v-model | 绑定值 | Date | — |
+| range | 日期范围 | array | — |
+
+---
+
+### Statistic 统计数值
+
+```vue
+<template>
+  <!-- 基础用法 -->
+  <el-statistic title="日活跃用户" :value="268500" />
+
+  <!-- 带千分位 -->
+  <el-statistic
+    title="账户余额"
+    :value="268500"
+    :precision="2"
+    prefix="¥"
+  />
+
+  <!-- 带前后缀 -->
+  <el-statistic title="反馈率" :value="88.8" suffix="%" />
+
+  <!-- 倒计时 -->
+  <el-countdown
+    title="距离活动结束"
+    :value="deadline"
+    format="DD 天 HH 时 mm 分 ss 秒"
+    @finish="handleFinish"
+  />
+
+  <!-- 带样式 -->
+  <el-statistic
+    title="增长率"
+    :value="12.6"
+    suffix="%"
+    :value-style="{ color: '#3f8600' }"
+  >
+    <template #prefix>
+      <el-icon><CaretTop /></el-icon>
+    </template>
+  </el-statistic>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import { CaretTop } from '@element-plus/icons-vue'
+
+const deadline = Date.now() + 1000 * 60 * 60 * 24 * 2
+
+const handleFinish = () => {
+  console.log('倒计时结束')
+}
+</script>
+```
+
+**Statistic 属性**:
+
+| 属性 | 说明 | 类型 | 默认值 |
+|------|------|------|--------|
+| value | 数值 | number | 0 |
+| title | 标题 | string | — |
+| prefix | 前缀 | string | — |
+| suffix | 后缀 | string | — |
+| precision | 精度 | number | 0 |
+| group-separator | 千分位分隔符 | string | ',' |
+| decimal-separator | 小数点 | string | '.' |
+| value-style | 数值样式 | object | — |
+
+**Countdown 属性**:
+
+| 属性 | 说明 | 类型 | 默认值 |
+|------|------|------|--------|
+| value | 目标时间 | number/Dayjs | — |
+| format | 格式化 | string | 'HH:mm:ss' |
+
+---
+
+### Segmented 分段控制器
+
+```vue
+<template>
+  <!-- 基础用法 -->
+  <el-segmented v-model="value" :options="options" />
+
+  <!-- 禁用选项 -->
+  <el-segmented
+    v-model="value"
+    :options="[
+      'Mon', 'Tue', 'Wed',
+      { value: 'Thu', label: 'Thu', disabled: true },
+      'Fri', 'Sat', 'Sun'
+    ]"
+  />
+
+  <!-- 块级 -->
+  <el-segmented v-model="value" :options="options" block />
+
+  <!-- 自定义渲染 -->
+  <el-segmented v-model="value" :options="customOptions">
+    <template #default="{ item }">
+      <div class="custom-item">
+        <el-icon><User /></el-icon>
+        <span>{{ item.label }}</span>
+      </div>
+    </template>
+  </el-segmented>
+
+  <!-- 不同尺寸 -->
+  <el-segmented v-model="value" :options="options" size="large" />
+  <el-segmented v-model="value" :options="options" />
+  <el-segmented v-model="value" :options="options" size="small" />
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import { User } from '@element-plus/icons-vue'
+
+const value = ref('Mon')
+const options = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
+const customOptions = [
+  { value: 'user1', label: 'User 1' },
+  { value: 'user2', label: 'User 2' },
+  { value: 'user3', label: 'User 3' }
+]
+</script>
+```
+
+---
+
+### Affix 固钉
+
+```vue
+<template>
+  <!-- 基础用法 -->
+  <el-affix :offset="120">
+    <el-button type="primary">距离顶部 120px</el-button>
+  </el-affix>
+
+  <!-- 指定容器 -->
+  <div class="affix-container" ref="container">
+    <el-affix :target="container" :offset="80">
+      <el-button type="primary">指定容器</el-button>
+    </el-affix>
+  </div>
+
+  <!-- 固定在底部 -->
+  <el-affix position="bottom" :offset="20">
+    <el-button type="primary">距离底部 20px</el-button>
+  </el-affix>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+const container = ref(null)
+</script>
+```
+
+**Affix 属性**:
+
+| 属性 | 说明 | 类型 | 默认值 |
+|------|------|------|--------|
+| offset | 偏移距离 | number | 0 |
+| position | 固定位置 | 'top'/'bottom' | 'top' |
+| target | 容器 | string | — |
+| z-index | 层级 | number | 100 |
+
+---
+
+### Anchor 锚点
+
+```vue
+<template>
+  <el-row>
+    <el-col :span="16">
+      <div id="part1" class="section">Part 1</div>
+      <div id="part2" class="section">Part 2</div>
+      <div id="part3" class="section">Part 3</div>
+    </el-col>
+    <el-col :span="8">
+      <el-anchor :offset="100">
+        <el-anchor-link href="#part1" title="Part 1" />
+        <el-anchor-link href="#part2" title="Part 2" />
+        <el-anchor-link href="#part3" title="Part 3">
+          <template #sub-link>
+            <el-anchor-link href="#part3-1" title="Part 3-1" />
+            <el-anchor-link href="#part3-2" title="Part 3-2" />
+          </template>
+        </el-anchor-link>
+      </el-anchor>
+    </el-col>
+  </el-row>
+</template>
+```
+
+**Anchor 属性**:
+
+| 属性 | 说明 | 类型 | 默认值 |
+|------|------|------|--------|
+| container | 滚动容器 | string/HTMLElement | — |
+| offset | 偏移量 | number | 0 |
+| duration | 动画时长(ms) | number | 300 |
+| marker | 显示标记 | boolean | true |
+| direction | 方向 | 'vertical'/'horizontal' | 'vertical' |
+
+---
+
+### Backtop 回到顶部
+
+```vue
+<template>
+  <el-backtop :right="100" :bottom="100" />
+
+  <!-- 自定义内容 -->
+  <el-backtop :bottom="100">
+    <div class="custom-backtop">
+      UP
+    </div>
+  </el-backtop>
+</template>
+
+<style scoped>
+.custom-backtop {
+  height: 100%;
+  width: 100%;
+  background-color: var(--el-bg-color-overlay);
+  box-shadow: var(--el-box-shadow-lighter);
+  text-align: center;
+  line-height: 40px;
+  color: #1989fa;
+}
+</style>
+```
+
+**Backtop 属性**:
+
+| 属性 | 说明 | 类型 | 默认值 |
+|------|------|------|--------|
+| target | 触发滚动的对象 | string | — |
+| visibility-height | 显示时机 | number | 200 |
+| right | 右边距 | number | 40 |
+| bottom | 下边距 | number | 40 |
+
+---
+
+### PageHeader 页头
+
+```vue
+<template>
+  <el-page-header @back="goBack">
+    <template #content>
+      <span class="text-large font-600 mr-3">标题</span>
+    </template>
+  </el-page-header>
+
+  <!-- 带面包屑 -->
+  <el-page-header @back="goBack">
+    <template #breadcrumb>
+      <el-breadcrumb separator="/">
+        <el-breadcrumb-item :to="{ path: '/' }">首页</el-breadcrumb-item>
+        <el-breadcrumb-item>详情</el-breadcrumb-item>
+      </el-breadcrumb>
+    </template>
+    <template #content>
+      <span>详情页</span>
+    </template>
+    <template #extra>
+      <el-button>编辑</el-button>
+      <el-button type="primary">发布</el-button>
+    </template>
+  </el-page-header>
+</template>
+
+<script setup>
+const goBack = () => {
+  console.log('返回')
+}
+</script>
+```
+
+**PageHeader 属性**:
+
+| 属性 | 说明 | 类型 | 默认值 |
+|------|------|------|--------|
+| icon | 图标 | string/Component | Back |
+| title | 标题 | string | '' |
+| content | 内容 | string | '' |
+
+**插槽**: icon, title, content, extra, breadcrumb, default
+
+---
+
+### Tour 漫游式引导
+
+```vue
+<template>
+  <el-button @click="open = true">开始引导</el-button>
+
+  <el-tour v-model="open" @finish="handleFinish">
+    <el-tour-step :target="step1Ref" title="步骤 1" description="这是第一步的描述" />
+    <el-tour-step :target="step2Ref" title="步骤 2" description="这是第二步的描述" />
+    <el-tour-step :target="step3Ref" title="步骤 3" description="这是第三步的描述" />
+  </el-tour>
+
+  <div>
+    <el-button ref="step1Ref">步骤 1</el-button>
+    <el-button ref="step2Ref">步骤 2</el-button>
+    <el-button ref="step3Ref">步骤 3</el-button>
+  </div>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+
+const open = ref(false)
+const step1Ref = ref(null)
+const step2Ref = ref(null)
+const step3Ref = ref(null)
+
+const handleFinish = () => {
+  console.log('引导完成')
+}
+</script>
+```
+
+**Tour 属性**:
+
+| 属性 | 说明 | 类型 | 默认值 |
+|------|------|------|--------|
+| v-model | 显示状态 | boolean | false |
+| mask | 遮罩 | boolean/object | true |
+| type | 类型 | 'default'/'primary' | 'default' |
+| placement | 位置 | string | 'bottom' |
+
+**TourStep 属性**:
+
+| 属性 | 说明 | 类型 | 默认值 |
+|------|------|------|--------|
+| target | 目标元素 | HTMLElement/string/function | — |
+| title | 标题 | string | — |
+| description | 描述 | string | — |
+
+---
+
+### Popconfirm 气泡确认框
+
+```vue
+<template>
+  <el-popconfirm
+    title="确定删除吗？"
+    @confirm="handleConfirm"
+    @cancel="handleCancel"
+  >
+    <template #reference>
+      <el-button>删除</el-button>
+    </template>
+  </el-popconfirm>
+
+  <!-- 自定义 -->
+  <el-popconfirm
+    title="确定操作吗？"
+    confirm-button-text="是"
+    cancel-button-text="否"
+    :icon="WarningFilled"
+    icon-color="#f56c6c"
+  >
+    <template #reference>
+      <el-button type="danger">危险操作</el-button>
+    </template>
+  </el-popconfirm>
+</template>
+
+<script setup>
+import { WarningFilled } from '@element-plus/icons-vue'
+
+const handleConfirm = () => {
+  console.log('确认')
+}
+
+const handleCancel = () => {
+  console.log('取消')
+}
+</script>
+```
+
+**Popconfirm 属性**:
+
+| 属性 | 说明 | 类型 | 默认值 |
+|------|------|------|--------|
+| title | 标题 | string | — |
+| confirm-button-text | 确认按钮文字 | string | — |
+| cancel-button-text | 取消按钮文字 | string | — |
+| confirm-button-type | 确认按钮类型 | string | 'primary' |
+| cancel-button-type | 取消按钮类型 | string | 'text' |
+| icon | 图标 | string/Component | QuestionFilled |
+| icon-color | 图标颜色 | string | '#f90' |
+| hide-icon | 隐藏图标 | boolean | false |
+
+---
+
+### Divider 分割线
+
+```vue
+<template>
+  <!-- 基础用法 -->
+  <el-divider />
+
+  <!-- 带文字 -->
+  <el-divider>分割线文字</el-divider>
+
+  <!-- 文字位置 -->
+  <el-divider content-position="left">左侧文字</el-divider>
+  <el-divider content-position="right">右侧文字</el-divider>
+
+  <!-- 虚线 -->
+  <el-divider border-style="dashed" />
+
+  <!-- 垂直分割线 -->
+  <span>文字</span>
+  <el-divider direction="vertical" />
+  <span>文字</span>
+  <el-divider direction="vertical" />
+  <span>文字</span>
+</template>
+```
+
+**Divider 属性**:
+
+| 属性 | 说明 | 类型 | 默认值 |
+|------|------|------|--------|
+| direction | 方向 | 'horizontal'/'vertical' | 'horizontal' |
+| border-style | 边框样式 | string | 'solid' |
+| content-position | 文字位置 | 'left'/'center'/'right' | 'center' |
+
+---
+
+### Watermark 水印
+
+```vue
+<template>
+  <!-- 基础用法 -->
+  <el-watermark content="Element Plus">
+    <div style="height: 500px" />
+  </el-watermark>
+
+  <!-- 多行文字 -->
+  <el-watermark :content="['Element Plus', 'Vue 3 组件库']">
+    <div style="height: 500px" />
+  </el-watermark>
+
+  <!-- 图片水印 -->
+  <el-watermark :image="imageUrl" :width="130" :height="30">
+    <div style="height: 500px" />
+  </el-watermark>
+
+  <!-- 自定义样式 -->
+  <el-watermark
+    content="自定义水印"
+    :font="{ color: 'rgba(0, 0, 0, 0.2)', fontSize: 20 }"
+    :rotate="-30"
+    :gap="[100, 100]"
+  >
+    <div style="height: 500px" />
+  </el-watermark>
+</template>
+```
+
+**Watermark 属性**:
+
+| 属性 | 说明 | 类型 | 默认值 |
+|------|------|------|--------|
+| content | 水印文字 | string/array | 'Element Plus' |
+| image | 图片地址 | string | — |
+| width | 宽度 | number | 120 |
+| height | 高度 | number | 64 |
+| rotate | 旋转角度 | number | -22 |
+| z-index | 层级 | number | 9 |
+| gap | 间距 | array | [100, 100] |
+| font | 字体配置 | object | — |
+
+---
+
+### Scrollbar 滚动条
+
+```vue
+<template>
+  <!-- 基础用法 -->
+  <el-scrollbar height="400px">
+    <p v-for="item in 20" :key="item" class="scrollbar-demo-item">
+      {{ item }}
+    </p>
+  </el-scrollbar>
+
+  <!-- 横向滚动 -->
+  <el-scrollbar>
+    <div class="scrollbar-flex-content">
+      <p v-for="item in 50" :key="item" class="scrollbar-demo-item">
+        {{ item }}
+      </p>
+    </div>
+  </el-scrollbar>
+
+  <!-- 最大高度 -->
+  <el-scrollbar max-height="400px">
+    <p v-for="item in count" :key="item">{{ item }}</p>
+  </el-scrollbar>
+
+  <!-- 手动滚动 -->
+  <el-scrollbar ref="scrollbarRef" height="400px">
+    <div ref="innerRef">
+      <p v-for="item in 20" :key="item">{{ item }}</p>
+    </div>
+  </el-scrollbar>
+  <el-button @click="scrollToTop">滚动到顶部</el-button>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+
+const count = ref(3)
+const scrollbarRef = ref()
+
+const scrollToTop = () => {
+  scrollbarRef.value.setScrollTop(0)
+}
+</script>
+```
+
+**Scrollbar 属性**:
+
+| 属性 | 说明 | 类型 | 默认值 |
+|------|------|------|--------|
+| height | 高度 | string/number | — |
+| max-height | 最大高度 | string/number | — |
+| native | 使用原生滚动条 | boolean | false |
+| always | 始终显示滚动条 | boolean | false |
+| min-size | 滚动条最小尺寸 | number | 20 |
+
+**方法**:
+- `setScrollTop(top)`: 设置滚动位置
+- `setScrollLeft(left)`: 设置水平位置
+- `scrollTo(options)`: 滚动到指定位置
+- `update()`: 更新滚动条状态
+
+---
+
+### InfiniteScroll 无限滚动
+
+```vue
+<template>
+  <ul
+    v-infinite-scroll="load"
+    class="infinite-list"
+    :infinite-scroll-disabled="disabled"
+    :infinite-scroll-distance="10"
+    style="overflow: auto; height: 300px"
+  >
+    <li v-for="i in count" :key="i" class="infinite-list-item">{{ i }}</li>
+    <li v-if="loading" class="infinite-list-item">加载中...</li>
+    <li v-if="noMore" class="infinite-list-item">没有更多了</li>
+  </ul>
+</template>
+
+<script setup>
+import { ref, computed } from 'vue'
+
+const count = ref(10)
+const loading = ref(false)
+const noMore = computed(() => count.value >= 20)
+const disabled = computed(() => loading.value || noMore.value)
+
+const load = () => {
+  loading.value = true
+  setTimeout(() => {
+    count.value += 2
+    loading.value = false
+  }, 2000)
+}
+</script>
+```
+
+**指令属性**:
+
+| 属性 | 说明 | 类型 | 默认值 |
+|------|------|------|--------|
+| v-infinite-scroll | 加载函数 | function | — |
+| infinite-scroll-disabled | 是否禁用 | boolean | false |
+| infinite-scroll-delay | 节流延迟(ms) | number | 200 |
+| infinite-scroll-distance | 触发距离(px) | number | 0 |
+| infinite-scroll-immediate | 立即执行 | boolean | true |
+
+**注意**: 此指令在 3.0.0 版本将被移除，建议使用 Scrollbar 组件的无限滚动功能。
+
+---
+
+### Splitter 分割面板
+
+```vue
+<template>
+  <!-- 基础用法 -->
+  <el-splitter style="height: 300px">
+    <el-splitter-panel>面板 1</el-splitter-panel>
+    <el-splitter-panel>面板 2</el-splitter-panel>
+  </el-splitter>
+
+  <!-- 垂直布局 -->
+  <el-splitter layout="vertical" style="height: 300px">
+    <el-splitter-panel>上</el-splitter-panel>
+    <el-splitter-panel>下</el-splitter-panel>
+  </el-splitter>
+
+  <!-- 指定尺寸 -->
+  <el-splitter style="height: 300px">
+    <el-splitter-panel :size="200" :min="100" :max="300">
+      固定宽度
+    </el-splitter-panel>
+    <el-splitter-panel>自适应</el-splitter-panel>
+  </el-splitter>
+
+  <!-- 可折叠 -->
+  <el-splitter style="height: 300px">
+    <el-splitter-panel collapsible :min="50">
+      可折叠面板
+    </el-splitter-panel>
+    <el-splitter-panel>面板 2</el-splitter-panel>
+  </el-splitter>
+
+  <!-- 嵌套 -->
+  <el-splitter style="height: 400px">
+    <el-splitter-panel :size="200">左侧</el-splitter-panel>
+    <el-splitter-panel>
+      <el-splitter layout="vertical">
+        <el-splitter-panel>上</el-splitter-panel>
+        <el-splitter-panel>下</el-splitter-panel>
+      </el-splitter>
+    </el-splitter-panel>
+  </el-splitter>
+</template>
+```
+
+**Splitter 属性**:
+
+| 属性 | 说明 | 类型 | 默认值 |
+|------|------|------|--------|
+| layout | 布局方向 | 'horizontal'/'vertical' | 'horizontal' |
+| lazy | 延迟更新 | boolean | false |
+
+**SplitterPanel 属性**:
+
+| 属性 | 说明 | 类型 | 默认值 |
+|------|------|------|--------|
+| size | 尺寸 | number/string | — |
+| min | 最小尺寸 | number/string | — |
+| max | 最大尺寸 | number/string | — |
+| resizable | 可调整 | boolean | true |
+| collapsible | 可折叠 | boolean | false |
+
+---
+
+### Text 文本
+
+```vue
+<template>
+  <!-- 类型 -->
+  <el-text>Default</el-text>
+  <el-text type="primary">Primary</el-text>
+  <el-text type="success">Success</el-text>
+  <el-text type="info">Info</el-text>
+  <el-text type="warning">Warning</el-text>
+  <el-text type="danger">Danger</el-text>
+
+  <!-- 尺寸 -->
+  <el-text size="large">Large</el-text>
+  <el-text>Default</el-text>
+  <el-text size="small">Small</el-text>
+
+  <!-- 省略 -->
+  <el-row class="w-150px">
+    <el-text truncated>这是一段很长的文字会被截断</el-text>
+  </el-row>
+
+  <!-- 多行省略 -->
+  <el-text :line-clamp="2">
+    这是一段很长的文字，会在两行后被截断显示省略号。
+  </el-text>
+
+  <!-- 自定义标签 -->
+  <el-text tag="b">加粗</el-text>
+  <el-text tag="i">斜体</el-text>
+  <el-text tag="p">段落</el-text>
+  <el-text tag="ins">插入</el-text>
+  <el-text tag="del">删除</el-text>
+  <el-text tag="mark">标记</el-text>
+</template>
+```
+
+**Text 属性**:
+
+| 属性 | 说明 | 类型 | 默认值 |
+|------|------|------|--------|
+| type | 类型 | 'primary'/'success'/'info'/'warning'/'danger' | — |
+| size | 尺寸 | 'large'/'default'/'small' | 'default' |
+| truncated | 显示省略号 | boolean | false |
+| line-clamp | 最大行数 | number/string | — |
+| tag | 自定义标签 | string | 'span' |
+
+---
+
+## 常见问题
+
+### 1. 按需引入样式丢失
+
+确保安装并配置了 `unplugin-element-plus` 插件：
+
+```bash
+npm install -D unplugin-element-plus
+```
+
+```typescript
+// vite.config.ts
+import ElementPlus from 'unplugin-element-plus/vite'
+
+export default defineConfig({
+  plugins: [ElementPlus()],
+})
+```
+
+### 2. 日期选择器中文问题
+
+导入 Day.js 的中文语言包：
+
+```typescript
+import 'dayjs/locale/zh-cn'
+```
+
+### 3. 图标不显示
+
+确保正确安装并导入了图标：
+
+```bash
+npm install @element-plus/icons-vue
+```
+
+```typescript
+import * as ElementPlusIconsVue from '@element-plus/icons-vue'
+
+const app = createApp(App)
+for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
+  app.component(key, component)
+}
+```
+
+### 4. 表单验证不触发
+
+确保 `el-form-item` 的 `prop` 属性与 `model` 中的字段名一致：
+
+```vue
+<el-form :model="form" :rules="rules">
+  <el-form-item prop="username"> <!-- prop 必须与 form.username 对应 -->
+    <el-input v-model="form.username" />
+  </el-form-item>
+</el-form>
+```
+
+### 5. Dialog 嵌套问题
+
+在嵌套的 Dialog 上添加 `append-to-body` 属性：
+
+```vue
+<el-dialog v-model="outerVisible">
+  <el-dialog v-model="innerVisible" append-to-body>
+    内层对话框
+  </el-dialog>
+</el-dialog>
+```
+
+---
+
+本文档涵盖了 Vue 3 + Element Plus 的核心功能和常用组件，可作为开发企业级 Web 应用的完整参考。

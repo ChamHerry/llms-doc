@@ -1721,7 +1721,6 @@ wget -O gf https://github.com/gogf/gf/releases/latest/download/gf_$(go env GOOS)
 | `gf build` | 交叉编译 |
 | `gf gen dao` | 生成 DAO 代码 |
 | `gf gen ctrl` | 生成控制器 |
-| `gf gen service` | 生成服务接口 |
 | `gf gen enums` | 生成枚举 |
 | `gf gen pb` | 编译 Proto |
 | `gf pack` | 资源打包 |
@@ -1881,35 +1880,6 @@ type GetListRes struct {
 
 ```bash
 gf gen ctrl
-```
-
----
-
----
-url: 'https://goframe.org/docs/cli/gen-service'
-description: GoFrame CLI gen service 命令 - 生成服务接口。
----
-# 服务接口生成 (gen service)
-
-## 功能
-
-从 Logic 层代码自动生成 Service 层接口定义。
-
-## 使用
-
-```bash
-gf gen service
-```
-
-## 配置
-
-```yaml
-gfcli:
-  gen:
-    service:
-      srcFolder: "internal/logic"
-      dstFolder: "internal/service"
-      dstFileNameCase: "Snake"
 ```
 
 ---
